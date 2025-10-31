@@ -1,0 +1,2 @@
+ALTER TABLE `listings` ADD `shippingMethod` enum('verified','pickup') DEFAULT 'verified' NOT NULL;--> statement-breakpoint
+ALTER TABLE `transactions` ADD `ageVerificationConfirmed` boolean DEFAULT false NOT NULL;
