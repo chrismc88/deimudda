@@ -358,3 +358,6 @@
 - [ ] Test Sandbox payments end-to-end
 - [ ] Switch to Live credentials for production
 
+
+## Neue Bugs/Issues (01.11.2025)
+- [x] Bug #25: OAuth callback failed - Authentifizierung funktioniert nicht (FIXED: Fehlende Datenbankspalten hinzugefügt)
