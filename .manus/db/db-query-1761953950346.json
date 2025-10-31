@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE listings \nADD COLUMN IF NOT EXISTS offerMinPrice decimal(10,2),\nADD COLUMN IF NOT EXISTS acceptsOffers boolean DEFAULT false NOT NULL;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user NsiQtWCYGnoMDff.4b1a23b771b3 --database FmqGZ3pA4yAA8wgzGh5iib --execute ALTER TABLE listings \nADD COLUMN IF NOT EXISTS offerMinPrice decimal(10,2),\nADD COLUMN IF NOT EXISTS acceptsOffers boolean DEFAULT false NOT NULL;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 704
+}
