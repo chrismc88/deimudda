@@ -97,14 +97,11 @@ ZIP-Datei "OnlineplattformfürCannabis-StecklingsbörsemitVerkaufsoptionen.zip" 
 - 17 Tabellen (inkl. Admin-Tabellen)
 
 **Alte Datenbank (veröffentlichte Version):**
-- Host: gateway02.us-east-1.prod.aws.tidbcloud.com
-- User: NsiQtWCYGnoMDff.root
-- Password: I6karOH9aTzBd7A31k7Z
-- Database: Fnap243STGrtRAT8pGLyiK
+- Zugangsdaten in sicherer Umgebung gespeichert
 
 ### GitHub
 - Repository: https://github.com/chrismc88/deimudda
-- Token: `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`
+- Token: Bereits konfiguriert (in lokaler Git-Config)
 - Remote URL bereits konfiguriert mit Token
 
 ## 🎯 Ziel der nächsten Session
