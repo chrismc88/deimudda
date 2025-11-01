@@ -358,16 +358,3 @@
 - [ ] Test Sandbox payments end-to-end
 - [ ] Switch to Live credentials for production
 
-
-## Neue Bugs/Issues (01.11.2025)
-- [x] Bug #25: OAuth callback failed - Authentifizierung funktioniert nicht (FIXED: Fehlende Datenbankspalten hinzugefügt)
-
-## Datenwiederherstellung (01.11.2025)
-- [x] CSV-Backup-Dateien analysieren
-- [x] Benutzerprofile mit Profilbildern wiederherstellen (4 Benutzer)
-- [x] Verkäuferprofile importieren (4 Profile)
-- [x] Listings mit Bildern importieren (5 Listings)
-- [ ] Transaktionen wiederherstellen (optional)
-- [ ] Nachrichten und Konversationen importieren (optional)
-- [ ] System-Einstellungen wiederherstellen (Tabelle fehlt)
-- [ ] Admin-Logs importieren (optional)

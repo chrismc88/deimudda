@@ -1,0 +1,38 @@
+{
+  "query": "SELECT id, name, email, role, openId FROM users LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user NsiQtWCYGnoMDff.4b1a23b771b3 --database FmqGZ3pA4yAA8wgzGh5iib --execute SELECT id, name, email, role, openId FROM users LIMIT 10;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "chris rohleder",
+      "email": "mcrohleder@googlemail.com",
+      "role": "admin",
+      "openId": "UEesaNGSNFuu8UfYyEsQpG"
+    },
+    {
+      "id": "5520170",
+      "name": "Raphael S.",
+      "email": "raphaels3711@gmail.com",
+      "role": "user",
+      "openId": "7PzRycXZicfmVskaPxucgp"
+    },
+    {
+      "id": "5550065",
+      "name": "NULL",
+      "email": "NULL",
+      "role": "user",
+      "openId": "test_user_warning_workflow"
+    },
+    {
+      "id": "5580005",
+      "name": "NULL",
+      "email": "NULL",
+      "role": "user",
+      "openId": "test_seller_reactivation"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\topenId\n1\tchris rohleder\tmcrohleder@googlemail.com\tadmin\tUEesaNGSNFuu8UfYyEsQpG\n5520170\tRaphael S.\traphaels3711@gmail.com\tuser\t7PzRycXZicfmVskaPxucgp\n5550065\tNULL\tNULL\tuser\ttest_user_warning_workflow\n5580005\tNULL\tNULL\tuser\ttest_seller_reactivation\n",
+  "stderr": "",
+  "execution_time_ms": 49
+}
