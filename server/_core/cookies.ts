@@ -39,10 +39,14 @@ export function getSessionCookieOptions(
   //       ? hostname
   //       : undefined;
 
+  const secure = isSecureRequest(req);
+  // In dev over http, Chrome blocks SameSite=None cookies without Secure.
+  // Use Lax in that case to allow the session cookie.
+  const sameSite: CookieOptions["sameSite"] = secure ? "none" : "lax";
   return {
     httpOnly: true,
     path: "/",
-    sameSite: "none",
-    secure: isSecureRequest(req),
+    sameSite,
+    secure,
   };
 }
