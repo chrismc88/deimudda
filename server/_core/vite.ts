@@ -7,9 +7,16 @@ import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
 
 export async function setupVite(app: Express, server: Server) {
+  const hmrPort = parseInt(process.env.HMR_PORT || "24678");
+  const hmrHost = process.env.HMR_HOST || "localhost";
   const serverOptions = {
     middlewareMode: true,
-    hmr: { server },
+    hmr: { 
+      server,
+      host: hmrHost,
+      port: hmrPort
+    },
+    host: hmrHost,
     allowedHosts: true as const,
   };
 

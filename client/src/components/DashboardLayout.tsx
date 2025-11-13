@@ -24,7 +24,7 @@ import { useIsMobile } from "@/hooks/useMobile";
 import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
+import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
 
 const menuItems = [
@@ -36,6 +36,10 @@ const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 280;
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 480;
+
+// Dev-Login-URL nur für lokale Entwicklung
+const DEV_LOGIN_URL =
+  "/api/dev-login?openId=dev-user&name=Dev%20User";
 
 export default function DashboardLayout({
   children,
@@ -53,7 +57,7 @@ export default function DashboardLayout({
   }, [sidebarWidth]);
 
   if (loading) {
-    return <DashboardLayoutSkeleton />
+    return <DashboardLayoutSkeleton />;
   }
 
   if (!user) {
@@ -77,15 +81,39 @@ export default function DashboardLayout({
               </p>
             </div>
           </div>
-          <Button
-            onClick={() => {
-              window.location.href = getLoginUrl();
-            }}
-            size="lg"
-            className="w-full shadow-lg hover:shadow-xl transition-all"
-          >
-            Sign in
-          </Button>
+
+          {/* Zwei Buttons nebeneinander: Sign in (immer), Dev Login (nur in DEV) */}
+          <div className="flex w-full gap-3">
+            <Button
+              onClick={() => {
+                window.location.href = getLoginUrl();
+              }}
+              size="lg"
+              className="w-full shadow-lg hover:shadow-xl transition-all"
+            >
+              Sign in
+            </Button>
+
+            {import.meta.env.DEV && (
+              <Button
+                onClick={() => {
+                  window.location.href = DEV_LOGIN_URL;
+                }}
+                size="lg"
+                variant="secondary"
+                className="w-full"
+                title="Sets a local session cookie for development"
+              >
+                Dev Login
+              </Button>
+            )}
+          </div>
+
+          {import.meta.env.DEV && (
+            <p className="text-xs text-muted-foreground text-center">
+              Dev Login setzt ein Session-Cookie über <code>/api/dev-login</code>.
+            </p>
+          )}
         </div>
       </div>
     );
@@ -121,7 +149,7 @@ function DashboardLayoutContent({
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const activeMenuItem = menuItems.find(item => item.path === location);
+  const activeMenuItem = menuItems.find((item) => item.path === location);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -134,7 +162,8 @@ function DashboardLayoutContent({
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return;
 
-      const sidebarLeft = sidebarRef.current?.getBoundingClientRect().left ?? 0;
+      const sidebarLeft =
+        sidebarRef.current?.getBoundingClientRect().left ?? 0;
       const newWidth = e.clientX - sidebarLeft;
       if (newWidth >= MIN_WIDTH && newWidth <= MAX_WIDTH) {
         setSidebarWidth(newWidth);
@@ -209,7 +238,7 @@ function DashboardLayoutContent({
 
           <SidebarContent className="gap-0">
             <SidebarMenu className="px-2 py-1">
-              {menuItems.map(item => {
+              {menuItems.map((item) => {
                 const isActive = location === item.path;
                 return (
                   <SidebarMenuItem key={item.path}>
@@ -261,8 +290,11 @@ function DashboardLayoutContent({
             </DropdownMenu>
           </SidebarFooter>
         </Sidebar>
+
         <div
-          className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors ${isCollapsed ? "hidden" : ""}`}
+          className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors ${
+            isCollapsed ? "hidden" : ""
+          }`}
           onMouseDown={() => {
             if (isCollapsed) return;
             setIsResizing(true);

@@ -9,6 +9,7 @@ interface MultiImageUploadProps {
   maxImages?: number;
   maxSizeMB?: number;
   onImagesChange: (imageUrls: string[]) => void;
+  errorMessage?: string | null;
 }
 
 export function MultiImageUpload({
@@ -17,9 +18,11 @@ export function MultiImageUpload({
   maxImages = 5,
   maxSizeMB = 5,
   onImagesChange,
+  errorMessage,
 }: MultiImageUploadProps) {
   const [imageUrls, setImageUrls] = useState<string[]>(currentImages);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const uploadMutation = trpc.upload.image.useMutation();
 
   // Sync internal state with prop on mount only
@@ -42,7 +45,9 @@ export function MultiImageUpload({
 
     // Check if adding these files would exceed max images
     if (imageUrls.length + files.length > maxImages) {
-      toast.error(`Sie können maximal ${maxImages} Bilder hochladen.`);
+      const message = `Sie können maximal ${maxImages} Bilder hochladen.`;
+      setUploadError(message);
+      toast.error(message);
       return;
     }
 
@@ -81,9 +86,12 @@ export function MultiImageUpload({
       const newUrls = await Promise.all(uploadPromises);
       setImageUrls((prev) => [...prev, ...newUrls]);
 
+      setUploadError(null);
       toast.success(`${newUrls.length} Bild(er) erfolgreich hochgeladen`);
     } catch (error: any) {
-      toast.error(error.message || "Upload fehlgeschlagen. Bitte versuchen Sie es erneut.");
+      const message = error?.message || "Upload fehlgeschlagen. Bitte versuchen Sie es erneut.";
+      setUploadError(message);
+      toast.error(message);
     } finally {
       setUploading(false);
       // Reset input
@@ -92,6 +100,7 @@ export function MultiImageUpload({
   };
 
   const handleRemoveImage = (index: number) => {
+    setUploadError(null);
     setImageUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
@@ -155,7 +164,9 @@ export function MultiImageUpload({
           </label>
         </div>
       )}
+      {(uploadError || errorMessage) && (
+        <p className="text-sm text-red-600">{uploadError || errorMessage}</p>
+      )}
     </div>
   );
 }
-

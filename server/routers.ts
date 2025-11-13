@@ -5,6 +5,7 @@ import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
 import { TRPCError } from "@trpc/server";
+import { ENV } from "./_core/env";
 // PayPal integration will be added when API keys are provided
 
 export const appRouter = router({
@@ -156,11 +157,13 @@ export const appRouter = router({
         strain: z.string().min(1).max(255),
         description: z.string().optional(),
         quantity: z.number().int().positive(),
-        priceType: z.enum(["fixed", "auction"]),
+        priceType: z.enum(["fixed", "offer"]),
         fixedPrice: z.number().positive().optional(),
-        auctionStartPrice: z.number().positive().optional(),
-        auctionEndTime: z.date().optional(),
-        imageUrl: z.string().url().optional(),
+        offerMinPrice: z.number().positive().optional(),
+        acceptsOffers: z.boolean().optional(),
+        imageUrl: z.string().url().optional().or(
+          z.literal("").transform(() => undefined)
+        ),
         images: z.array(z.string().url()).optional(),
         shippingVerified: z.boolean().default(true),
         shippingPickup: z.boolean().default(false),
@@ -194,12 +197,16 @@ export const appRouter = router({
           });
         }
 
-        if (input.priceType === "auction" && !input.auctionStartPrice) {
+        if (input.priceType === "offer" && !input.offerMinPrice) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "Auction listings must have an auctionStartPrice",
+            message: "Offer listings must have an offerMinPrice",
           });
         }
+
+        const acceptsOffers = input.priceType === "offer"
+          ? true
+          : input.acceptsOffers ?? false;
 
         await db.createListing(ctx.user.id, {
           type: input.type,
@@ -208,8 +215,8 @@ export const appRouter = router({
           quantity: input.quantity,
           priceType: input.priceType,
           fixedPrice: input.fixedPrice,
-          auctionStartPrice: input.auctionStartPrice,
-          auctionEndTime: input.auctionEndTime,
+          offerMinPrice: input.offerMinPrice,
+          acceptsOffers,
           imageUrl: input.imageUrl,
           images: input.images ? JSON.stringify(input.images) : undefined,
           shippingVerified: input.shippingVerified,
@@ -273,7 +280,10 @@ export const appRouter = router({
         strain: z.string().optional(),
         description: z.string().optional(),
         quantity: z.number().int().positive().optional(),
+        priceType: z.enum(["fixed", "offer"]).optional(),
         fixedPrice: z.number().positive().optional(),
+        offerMinPrice: z.number().positive().optional(),
+        acceptsOffers: z.boolean().optional(),
         status: z.enum(["active", "sold", "ended", "draft"]).optional(),
         shippingVerified: z.boolean().optional(),
         shippingPickup: z.boolean().optional(),
@@ -295,15 +305,40 @@ export const appRouter = router({
           });
         }
 
-        await db.updateListing(input.listingId, {
+        const updates: Record<string, unknown> = {
           strain: input.strain,
           description: input.description,
           quantity: input.quantity,
-          fixedPrice: input.fixedPrice ? String(input.fixedPrice) : undefined,
           status: input.status,
           shippingVerified: input.shippingVerified,
           shippingPickup: input.shippingPickup,
-        } as any);
+        };
+
+        if (input.fixedPrice !== undefined) {
+          (updates as any).fixedPrice = String(input.fixedPrice);
+        }
+        if (input.offerMinPrice !== undefined) {
+          (updates as any).offerMinPrice = String(input.offerMinPrice);
+        }
+        if (input.acceptsOffers !== undefined) {
+          (updates as any).acceptsOffers = input.acceptsOffers;
+        }
+        if (input.priceType) {
+          (updates as any).priceType = input.priceType;
+          if (input.priceType === "offer") {
+            (updates as any).acceptsOffers = true;
+            (updates as any).fixedPrice = null;
+            (updates as any).offerMinPrice =
+              input.offerMinPrice !== undefined ? String(input.offerMinPrice) : null;
+          } else if (input.priceType === "fixed") {
+            (updates as any).offerMinPrice = null;
+            if (input.fixedPrice !== undefined) {
+              (updates as any).fixedPrice = String(input.fixedPrice);
+            }
+          }
+        }
+
+        await db.updateListing(input.listingId, updates as any);
 
         return { success: true };
       }),
@@ -386,31 +421,57 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const { storagePut } = await import("./storage");
         const { externalStoragePut, isExternalStorageEnabled } = await import("./external-storage");
-        
-        // Extract base64 data (remove data:image/...;base64, prefix)
-        const base64Data = input.data.split(",")[1];
-        const buffer = Buffer.from(base64Data, "base64");
-        
-        // Generate unique filename
-        const ext = input.filename.split(".").pop() || "jpg";
-        const randomSuffix = Math.random().toString(36).substring(7);
-        const fileKey = `uploads/${Date.now()}-${randomSuffix}.${ext}`;
-        
-        // Choose storage provider (Manus or external)
-        let url: string;
-        
-        if (isExternalStorageEnabled()) {
-          // Use external storage (Cloudflare R2 or Backblaze B2)
-          const result = await externalStoragePut(fileKey, buffer, input.contentType);
-          url = result.url;
-          console.log(`[Upload] Uploaded to external storage: ${url}`);
-        } else {
-          // Use Manus built-in storage (default)
-          const result = await storagePut(fileKey, buffer, input.contentType);
-          url = result.url;
+
+        const missingBuiltInStorage = !ENV.forgeApiUrl || !ENV.forgeApiKey;
+        if (!isExternalStorageEnabled() && missingBuiltInStorage) {
+          const message = ENV.isProduction
+            ? "Image upload is temporarily unavailable. Please try again later."
+            : "Bild-Upload ist in der lokalen Entwicklung deaktiviert. Setze BUILT_IN_FORGE_API_URL und BUILT_IN_FORGE_API_KEY um die Funktion zu aktivieren.";
+          throw new TRPCError({
+            code: ENV.isProduction ? "INTERNAL_SERVER_ERROR" : "BAD_REQUEST",
+            message,
+          });
         }
-        
-        return { url };
+
+        try {
+          // Extract base64 data (remove data:image/...;base64, prefix)
+          const [, encodedPayload] = input.data.split(",");
+          const base64Data = encodedPayload ?? input.data;
+          const buffer = Buffer.from(base64Data, "base64");
+
+          // Generate unique filename
+          const ext = input.filename.split(".").pop() || "jpg";
+          const randomSuffix = Math.random().toString(36).substring(7);
+          const fileKey = `uploads/${Date.now()}-${randomSuffix}.${ext}`;
+
+          // Choose storage provider (Manus or external)
+          let url: string;
+
+          if (isExternalStorageEnabled()) {
+            // Use external storage (Cloudflare R2 or Backblaze B2)
+            const result = await externalStoragePut(fileKey, buffer, input.contentType);
+            url = result.url;
+            console.log(`[Upload] Uploaded to external storage: ${url}`);
+          } else {
+            // Use Manus built-in storage (default)
+            const result = await storagePut(fileKey, buffer, input.contentType);
+            url = result.url;
+          }
+
+          return { url };
+        } catch (error) {
+          if (error instanceof TRPCError) {
+            throw error;
+          }
+          console.error("[Upload] Failed to store image", error);
+          const message = ENV.isProduction
+            ? "Image upload failed. Please try again later."
+            : (error instanceof Error ? error.message : "Unbekannter Fehler beim Bild-Upload.");
+          throw new TRPCError({
+            code: ENV.isProduction ? "INTERNAL_SERVER_ERROR" : "BAD_REQUEST",
+            message,
+          });
+        }
       }),
   }),
 
@@ -500,4 +561,3 @@ export const appRouter = router({
 });
 
 export type AppRouter = typeof appRouter;
-

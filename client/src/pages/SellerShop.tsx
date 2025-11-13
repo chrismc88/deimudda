@@ -136,7 +136,9 @@ export default function SellerShop() {
                         <p className="text-2xl font-bold text-green-600">
                           {listing.priceType === "fixed"
                             ? `€${parseFloat(listing.fixedPrice || "0").toFixed(2)}`
-                            : `Ab €${parseFloat(listing.auctionStartPrice || "0").toFixed(2)}`}
+                            : listing.offerMinPrice
+                            ? `Ab €${parseFloat(listing.offerMinPrice || "0").toFixed(2)}`
+                            : "Verhandlungsbasis"}
                         </p>
                       </div>
                     </div>
@@ -154,4 +156,3 @@ export default function SellerShop() {
     </div>
   );
 }
-

@@ -9,13 +9,15 @@ WORKDIR /app
 
 # Install dependencies first (better layer caching)
 COPY package.json pnpm-lock.yaml ./
+# Copy patches directory before installing dependencies
+COPY patches/ ./patches/
 RUN pnpm install --frozen-lockfile
 
 # Copy source
 COPY . .
 
-# Expose dev port
-EXPOSE 3000
+# Expose dev port (will be overridden by docker-compose)
+EXPOSE ${PORT:-3000}
 
 # Default env for dev inside container
 ENV NODE_ENV=development

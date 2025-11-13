@@ -18,20 +18,17 @@ function isSecureRequest(req: Request) {
     ? forwardedProto
     : forwardedProto.split(",");
 
-  return protoList.some(proto => proto.trim().toLowerCase() === "https");
+  return protoList.some((proto) => proto.trim().toLowerCase() === "https");
 }
 
-export function getSessionCookieOptions(
-  req: Request
-): Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> {
+export function getSessionCookieOptions(req: Request): CookieOptions {
+  // Wenn du irgendwann Domain auf Public-Suffix setzen willst, kannst du hier
+  // (auskommentiert) wieder aktivieren. Lokal/DEV lassen wir domain bewusst weg.
   // const hostname = req.hostname;
   // const shouldSetDomain =
   //   hostname &&
   //   !LOCAL_HOSTS.has(hostname) &&
-  //   !isIpAddress(hostname) &&
-  //   hostname !== "127.0.0.1" &&
-  //   hostname !== "::1";
-
+  //   !isIpAddress(hostname);
   // const domain =
   //   shouldSetDomain && !hostname.startsWith(".")
   //     ? `.${hostname}`
@@ -40,13 +37,16 @@ export function getSessionCookieOptions(
   //       : undefined;
 
   const secure = isSecureRequest(req);
-  // In dev over http, Chrome blocks SameSite=None cookies without Secure.
-  // Use Lax in that case to allow the session cookie.
+  // In Dev über http blockt Chrome SameSite=None ohne Secure → Lax im Dev.
   const sameSite: CookieOptions["sameSite"] = secure ? "none" : "lax";
-  return {
+
+  const opts: CookieOptions = {
     httpOnly: true,
     path: "/",
     sameSite,
     secure,
+    // domain, // wenn oben wieder aktiviert
   };
+
+  return opts;
 }
