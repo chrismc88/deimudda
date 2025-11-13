@@ -19,10 +19,20 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script
-      defer
-      src="%VITE_ANALYTICS_ENDPOINT%/umami"
-      data-website-id="%VITE_ANALYTICS_WEBSITE_ID%"></script>
+    <script type="module">
+      const isDev = import.meta.env.DEV;
+      const endpoint = import.meta.env.VITE_ANALYTICS_ENDPOINT;
+      const websiteId = import.meta.env.VITE_ANALYTICS_WEBSITE_ID;
+      const isValidEndpoint = typeof endpoint === "string" && /^https?:\/\//.test(endpoint);
+
+      if (!isDev && isValidEndpoint && websiteId) {
+        const script = document.createElement("script");
+        script.defer = true;
+        script.src = `${endpoint.replace(/\/+$/, "")}/umami`;
+        script.dataset.websiteId = websiteId;
+        document.body.appendChild(script);
+      }
+    </script>
   </body>
 
 </html>

@@ -109,13 +109,26 @@ export default function Checkout() {
       .render("#paypal-button-container");
   }, [window.paypal, listing.data, isAuthenticated, quantity, user?.id]);
 
+  const parsePriceValue = (value: unknown) => {
+    if (typeof value === "number") return value;
+    if (typeof value === "string") {
+      const parsed = parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
+  };
+
+  const resolveUnitPrice = () => {
+    if (!listing.data) return 0;
+    return listing.data.priceType === "fixed"
+      ? parsePriceValue(listing.data.fixedPrice as any)
+      : parsePriceValue(listing.data.offerMinPrice as any);
+  };
+
   const calculateTotal = () => {
     if (!listing.data) return "0.00";
 
-    const unitPrice =
-      listing.data.priceType === ("fixed" as any)
-        ? parseFloat(listing.data.fixedPrice as any)
-        : parseFloat(listing.data.auctionStartPrice as any);
+    const unitPrice = resolveUnitPrice();
 
     const subtotal = unitPrice * quantity;
     const platformFee = 0.42 * quantity; // €0.42 per item
@@ -168,10 +181,7 @@ export default function Checkout() {
     );
   }
 
-  const unitPrice =
-    listing.data.priceType === ("fixed" as any)
-      ? parseFloat(listing.data.fixedPrice as any)
-      : parseFloat(listing.data.auctionStartPrice as any);
+  const unitPrice = resolveUnitPrice();
 
   const subtotal = unitPrice * quantity;
   const platformFee = 0.42 * quantity; // €0.42 per item
@@ -436,4 +446,3 @@ export default function Checkout() {
     </div>
   );
 }
-

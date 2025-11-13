@@ -7,11 +7,13 @@ import { eq } from "drizzle-orm";
 async function getDb() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is required for seeding");
-  const conn = await mysql.createConnection(url);
-  return { db: drizzle(conn), conn } as const;
+  const pool = mysql.createPool(url);
+  return { db: drizzle(pool), pool } as const;
 }
 
-async function ensureUser(db: ReturnType<typeof drizzle>, openId: string, name: string) {
+type SeedDatabase = Awaited<ReturnType<typeof getDb>>["db"];
+
+async function ensureUser(db: SeedDatabase, openId: string, name: string) {
   const existing = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
   if (existing.length) return existing[0];
   await db.insert(users).values({ openId, name, role: "user", lastSignedIn: new Date() });
@@ -19,7 +21,7 @@ async function ensureUser(db: ReturnType<typeof drizzle>, openId: string, name: 
   return created[0];
 }
 
-async function ensureSellerProfile(db: ReturnType<typeof drizzle>, userId: number) {
+async function ensureSellerProfile(db: SeedDatabase, userId: number) {
   const existing = await db.select().from(sellerProfiles).where(eq(sellerProfiles.userId, userId)).limit(1);
   if (existing.length) return existing[0];
   await db.insert(sellerProfiles).values({ userId, shopName: "Green Garden", description: "Quality genetics.", location: "Local" });
@@ -27,7 +29,7 @@ async function ensureSellerProfile(db: ReturnType<typeof drizzle>, userId: numbe
   return created[0];
 }
 
-async function seedListings(db: ReturnType<typeof drizzle>, sellerId: number) {
+async function seedListings(db: SeedDatabase, sellerId: number) {
   const existing = await db.select().from(listings).where(eq(listings.sellerId, sellerId));
   if (existing.length > 0) return existing.length;
 
@@ -66,18 +68,19 @@ async function seedListings(db: ReturnType<typeof drizzle>, sellerId: number) {
 }
 
 async function main() {
-  const { db, conn } = await getDb();
+  const { db, pool } = await getDb();
+  const seededDb = db as SeedDatabase;
   try {
-    const seller = await ensureUser(db, "seller-local", "Local Seller");
-    const buyer = await ensureUser(db, "buyer-local", "Local Buyer");
-    await ensureSellerProfile(db, seller.id);
-    const count = await seedListings(db, seller.id);
+    const seller = await ensureUser(seededDb, "seller-local", "Local Seller");
+    const buyer = await ensureUser(seededDb, "buyer-local", "Local Buyer");
+    await ensureSellerProfile(seededDb, seller.id);
+    const count = await seedListings(seededDb, seller.id);
     console.log(`Seeded sample data: users=2, listings=${count}`);
     console.log("Try logging in as:");
     console.log("  /api/dev-login?openId=seller-local&name=Local%20Seller");
     console.log("  /api/dev-login?openId=buyer-local&name=Local%20Buyer");
   } finally {
-    await conn.end();
+    await pool.end();
   }
 }
 
@@ -85,4 +88,3 @@ main().catch(err => {
   console.error("Failed to seed sample data:", err);
   process.exit(1);
 });
-

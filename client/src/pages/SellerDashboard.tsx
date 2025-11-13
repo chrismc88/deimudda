@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import ImageUpload from "@/components/ImageUpload";
 import { MultiImageUpload } from "@/components/MultiImageUpload";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,11 +13,36 @@ import { AlertCircle, Plus, Edit2, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 
+type ListingFormState = {
+  type: "cutting" | "seed";
+  strain: string;
+  listingDescription: string;
+  quantity: number;
+  priceType: "fixed" | "offer";
+  fixedPrice: number;
+  offerMinPrice: number;
+  imageUrl: string;
+  images: string[];
+  shippingVerified: boolean;
+  shippingPickup: boolean;
+  genetics: "sativa" | "indica" | "hybrid" | "";
+  seedBank: string;
+  growMethod: "hydro" | "bio" | "soil" | "";
+  seedType: "feminized" | "regular" | "autoflower" | "";
+  thcContent: string;
+  cbdContent: string;
+  floweringTime: string;
+  yieldInfo: string;
+  flavorProfile: string;
+  origin: string;
+};
+
 export default function SellerDashboard() {
   const { user, isAuthenticated } = useAuth();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingListing, setEditingListing] = useState<any>(null);
+  const [createImageFieldError, setCreateImageFieldError] = useState<string | null>(null);
 
   // Queries
   const sellerProfile = trpc.seller.getProfile.useQuery(undefined, {
@@ -46,8 +70,12 @@ export default function SellerDashboard() {
       myListings.refetch();
       setIsCreateDialogOpen(false);
       setFormData(initialFormData);
+      setCreateImageFieldError(null);
     },
     onError: (error) => {
+      const zodError = (error?.data as any)?.zodError;
+      const imageFieldError = zodError?.fieldErrors?.imageUrl?.[0] ?? null;
+      setCreateImageFieldError(imageFieldError);
       toast.error("Fehler beim Erstellen des Angebots: " + error.message);
     },
   });
@@ -69,23 +97,22 @@ export default function SellerDashboard() {
   });
 
   // Form state
-  const initialFormData = {
-    type: "cutting" as const,
+  const initialFormData: ListingFormState = {
+    type: "cutting",
     strain: "",
     listingDescription: "",
     quantity: 1,
-    priceType: "fixed" as const,
+    priceType: "fixed",
     fixedPrice: 0,
-    auctionStartPrice: 0,
+    offerMinPrice: 0,
     imageUrl: "",
-    images: [] as string[],
+    images: [],
     shippingVerified: true,
     shippingPickup: false,
-    // Additional optional fields
-    genetics: "" as "sativa" | "indica" | "hybrid" | "",
+    genetics: "",
     seedBank: "",
-    growMethod: "" as "hydro" | "bio" | "soil" | "",
-    seedType: "" as "feminized" | "regular" | "autoflower" | "",
+    growMethod: "",
+    seedType: "",
     thcContent: "",
     cbdContent: "",
     floweringTime: "",
@@ -94,13 +121,20 @@ export default function SellerDashboard() {
     origin: "",
   };
 
-  const [formData, setFormData] = useState(initialFormData);
+  const [formData, setFormData] = useState<ListingFormState>(initialFormData);
   const [profileFormData, setProfileFormData] = useState({
     shopName: "",
     description: "",
     location: "",
   });
   const [ageVerifiedSeller, setAgeVerifiedSeller] = useState(false);
+
+  const handleCreateDialogOpenChange = (open: boolean) => {
+    setIsCreateDialogOpen(open);
+    if (!open) {
+      setCreateImageFieldError(null);
+    }
+  };
 
   // Handle edit button click - open edit dialog
   const handleEditClick = (listing: any) => {
@@ -115,16 +149,19 @@ export default function SellerDashboard() {
         imagesArray = [];
       }
     }
+    const nextPriceType = listing.priceType || (listing.acceptsOffers ? "offer" : "fixed");
+    const parsedFixedPrice = listing.fixedPrice ? parseFloat(listing.fixedPrice) : 0;
+    const parsedOfferMin = listing.offerMinPrice ? parseFloat(listing.offerMinPrice) : 0;
     
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       type: listing.type,
       strain: listing.strain,
       listingDescription: listing.description,
       quantity: listing.quantity,
-      priceType: listing.priceType,
-      fixedPrice: listing.priceType === 'fixed' ? parseFloat(listing.fixedPrice) : 0,
-      auctionStartPrice: listing.priceType === 'auction' && listing.auctionStartPrice ? parseFloat(listing.auctionStartPrice) : 0,
+      priceType: nextPriceType,
+      fixedPrice: nextPriceType === "fixed" ? parsedFixedPrice : 0,
+      offerMinPrice: nextPriceType === "offer" ? parsedOfferMin : 0,
       imageUrl: listing.imageUrl || "",
       images: imagesArray,
       shippingVerified: listing.shippingVerified ?? true,
@@ -140,7 +177,7 @@ export default function SellerDashboard() {
       yieldInfo: listing.yieldInfo || "",
       origin: listing.origin || "",
       flavorProfile: listing.flavorProfile || "",
-    });
+    }));
     setIsEditDialogOpen(true);
   };
 
@@ -313,7 +350,7 @@ export default function SellerDashboard() {
 
         {/* Create Listing Button */}
         <div className="mb-8">
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <Dialog open={isCreateDialogOpen} onOpenChange={handleCreateDialogOpenChange}>
             <DialogTrigger asChild>
               <Button size="lg" className="gap-2">
                 <Plus className="w-5 h-5" />
@@ -345,20 +382,22 @@ export default function SellerDashboard() {
                     toast.error("Preis muss grosser als 0 sein");
                     return;
                   }
-                  if (String(formData.priceType) === "auction" && formData.auctionStartPrice <= 0) {
-                    toast.error("Startgebot muss grosser als 0 sein");
+                  if (String(formData.priceType) === "offer" && formData.offerMinPrice <= 0) {
+                    toast.error("Mindestpreis muss grosser als 0 sein");
                     return;
                   }
 
+                  const isOfferListing = formData.priceType === "offer";
                   createListing.mutate({
                     type: formData.type as any,
                     strain: formData.strain,
                     description: formData.listingDescription,
                     quantity: formData.quantity,
                     priceType: formData.priceType as any,
-                    fixedPrice: formData.fixedPrice || undefined,
-                    auctionStartPrice: formData.auctionStartPrice || undefined,
-                    imageUrl: formData.imageUrl,
+                    fixedPrice: !isOfferListing ? formData.fixedPrice || undefined : undefined,
+                    offerMinPrice: isOfferListing ? formData.offerMinPrice || undefined : undefined,
+                    imageUrl: formData.imageUrl || undefined,
+                    images: formData.images.length ? formData.images : undefined,
                     shippingVerified: formData.shippingVerified,
                     shippingPickup: formData.shippingPickup,
                     // Additional optional fields
@@ -430,7 +469,7 @@ export default function SellerDashboard() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="fixed">Festpreis</SelectItem>
-                        <SelectItem value="auction">Auktion</SelectItem>
+                        <SelectItem value="offer">Verhandlungsbasis</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -450,15 +489,15 @@ export default function SellerDashboard() {
                   </div>
                 )}
 
-                {String(formData.priceType) === "auction" && (
+                {String(formData.priceType) === "offer" && (
                   <div>
-                    <label className="text-sm font-medium">Startgebot (€) *</label>
+                    <label className="text-sm font-medium">Mindestpreis (€) *</label>
                     <Input
                       type="number"
                       step="0.01"
                       min="0"
-                      value={formData.auctionStartPrice}
-                      onChange={(e) => setFormData({ ...formData, auctionStartPrice: parseFloat(e.target.value) })}
+                      value={formData.offerMinPrice}
+                      onChange={(e) => setFormData({ ...formData, offerMinPrice: parseFloat(e.target.value) })}
                       required
                     />
                   </div>
@@ -581,7 +620,11 @@ export default function SellerDashboard() {
                   currentImages={formData.images}
                   maxImages={5}
                   maxSizeMB={5}
-                  onImagesChange={(urls) => setFormData({ ...formData, images: urls, imageUrl: urls[0] || "" })}
+                  errorMessage={createImageFieldError}
+                  onImagesChange={(urls) => {
+                    setCreateImageFieldError(null);
+                    setFormData({ ...formData, images: urls, imageUrl: urls[0] || "" });
+                  }}
                 />
 
                 <div className="space-y-3">
@@ -647,12 +690,15 @@ export default function SellerDashboard() {
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (editingListing) {
+                    const isOfferListing = formData.priceType === "offer";
                     updateListing.mutate({
                       listingId: editingListing.id,
                       strain: formData.strain,
                       description: formData.listingDescription,
                       quantity: formData.quantity,
-                      fixedPrice: formData.priceType === 'fixed' ? formData.fixedPrice : undefined,
+                      priceType: formData.priceType as any,
+                      fixedPrice: !isOfferListing ? formData.fixedPrice : undefined,
+                      offerMinPrice: isOfferListing ? formData.offerMinPrice : undefined,
                     });
                   }
                 }}
@@ -711,7 +757,7 @@ export default function SellerDashboard() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="fixed">Festpreis</SelectItem>
-                        <SelectItem value="auction">Auktion</SelectItem>
+                        <SelectItem value="offer">Verhandlungsbasis</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -731,15 +777,15 @@ export default function SellerDashboard() {
                   </div>
                 )}
 
-                {String(formData.priceType) === "auction" && (
+                {String(formData.priceType) === "offer" && (
                   <div>
-                    <label className="text-sm font-medium">Startgebot (€) *</label>
+                    <label className="text-sm font-medium">Mindestpreis (€) *</label>
                     <Input
                       type="number"
                       step="0.01"
                       min="0"
-                      value={formData.auctionStartPrice}
-                      onChange={(e) => setFormData({ ...formData, auctionStartPrice: parseFloat(e.target.value) })}
+                      value={formData.offerMinPrice}
+                      onChange={(e) => setFormData({ ...formData, offerMinPrice: parseFloat(e.target.value) })}
                       required
                     />
                   </div>
@@ -947,7 +993,9 @@ export default function SellerDashboard() {
                         <td className="py-2 px-4">
                           {String(listing.priceType) === "fixed"
                             ? `€${parseFloat(listing.fixedPrice as any).toFixed(2)}`
-                            : `Ab €${parseFloat(listing.auctionStartPrice as any).toFixed(2)}`}
+                            : listing.offerMinPrice
+                            ? `Ab €${parseFloat(listing.offerMinPrice as any).toFixed(2)}`
+                            : "Verhandlungsbasis"}
                         </td>
                         <td className="py-2 px-4">
                           <Badge variant={listing.status === "active" ? "default" : "secondary"}>
@@ -984,4 +1032,3 @@ export default function SellerDashboard() {
     </div>
   );
 }
-

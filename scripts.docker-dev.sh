@@ -38,5 +38,16 @@ if [ -n "${DATABASE_URL:-}" ]; then
   pnpm seed:sample || true
 fi
 
-echo "[docker-dev] Launching dev server on :$PORT"
-exec pnpm dev
+echo "[docker-dev] Launching dev server on 0.0.0.0:$PORT"
+echo "[docker-dev] NODE_ENV=$NODE_ENV"
+echo "[docker-dev] DATABASE_URL=$DATABASE_URL"
+
+# Debug: Show listening ports before starting
+if command -v ss &> /dev/null; then
+  echo "[docker-dev] Current listening ports:"
+  ss -tuln
+fi
+
+# Start the server with debugging
+set -x
+exec pnpm dev --host 0.0.0.0 --port $PORT

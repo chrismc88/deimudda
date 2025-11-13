@@ -39,6 +39,17 @@ export default function ListingDetail() {
   }
 
   const data = listing.data;
+  const parsePriceValue = (value: unknown) => {
+    if (typeof value === "number") return value;
+    if (typeof value === "string") {
+      const parsed = parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
+  };
+  const resolvedPrice = data.priceType === "fixed"
+    ? parsePriceValue(data.fixedPrice as any)
+    : parsePriceValue(data.offerMinPrice as any);
 
   // Parse images field (can be JSON string or array)
   const getImages = (): string[] => {
@@ -113,9 +124,11 @@ export default function ListingDetail() {
                   <div>
                     <p className="text-sm text-gray-600">Preis</p>
                     <p className="text-2xl font-bold text-green-600">
-                      {data.priceType === ("fixed" as any)
-                        ? `€${parseFloat(data.fixedPrice as any).toFixed(2)}`
-                        : `Ab €${parseFloat(data.auctionStartPrice as any).toFixed(2)}`}
+                      {data.priceType === "fixed"
+                        ? `€${resolvedPrice.toFixed(2)}`
+                        : data.offerMinPrice
+                        ? `Ab €${resolvedPrice.toFixed(2)}`
+                        : "Verhandlungsbasis"}
                     </p>
                   </div>
                 </div>
@@ -187,23 +200,6 @@ export default function ListingDetail() {
                       )}
                     </div>
                   </div>
-                )}
-
-                {/* Auction Info */}
-                {data.priceType === ("auction" as any) && data.auctionEndTime && (
-                  <Alert>
-                    <Gavel className="h-4 w-4" />
-                    <AlertDescription>
-                      Auktion endet am{" "}
-                      {new Date(data.auctionEndTime).toLocaleDateString("de-DE", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </AlertDescription>
-                  </Alert>
                 )}
 
                 {/* Legal Notice */}
@@ -320,7 +316,7 @@ export default function ListingDetail() {
                   <>
                     {data.status === "active" ? (
                       <>
-                        {data.priceType === ("fixed" as any) ? (
+                        {data.priceType === "fixed" ? (
                           <a href={`/checkout/${data.id}`}>
                             <Button className="w-full gap-2" size="lg">
                               <ShoppingCart className="w-5 h-5" />
@@ -330,7 +326,7 @@ export default function ListingDetail() {
                         ) : (
                           <Button className="w-full gap-2" size="lg" variant="outline">
                             <Gavel className="w-5 h-5" />
-                            Bieten
+                            Angebot senden
                           </Button>
                         )}
                         <p className="text-xs text-gray-500 text-center">
@@ -376,4 +372,3 @@ export default function ListingDetail() {
     </div>
   );
 }
-

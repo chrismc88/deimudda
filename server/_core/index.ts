@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
+import fs from "fs";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
@@ -11,6 +12,8 @@ import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./cookies";
 import * as db from "../db";
 import { sdk } from "./sdk";
+
+const OWNER_OPEN_ID = process.env.OWNER_OPEN_ID ?? "admin-local";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -34,24 +37,58 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  // Basic health endpoint for connectivity checks
+  app.get("/healthz", (_req, res) => {
+    res.json({ ok: true, pid: process.pid });
+  });
+
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+
   // Dev-only login helper: set a session cookie without external OAuth
   if (process.env.NODE_ENV === "development") {
     app.get("/api/dev-login", async (req, res) => {
-      const openId = typeof req.query.openId === "string" ? req.query.openId : "dev-user";
-      const name = typeof req.query.name === "string" ? req.query.name : "Dev User";
+      const openId =
+        typeof req.query.openId === "string" ? req.query.openId : "dev-user";
+      const name =
+        typeof req.query.name === "string" ? req.query.name : "Dev User";
 
-      await db.upsertUser({ openId, name, lastSignedIn: new Date() });
-      const token = await sdk.createSessionToken(openId, { name, expiresInMs: ONE_YEAR_MS });
+      // Optional: ?admin=1 in der URL erzwingt Admin (nur in DEV)
+      const adminParam = String(req.query.admin ?? "");
+      const byParam =
+        adminParam === "1" || adminParam.toLowerCase() === "true";
+
+      const isAdmin = byParam || openId === OWNER_OPEN_ID;
+
+      // DB: User upserten + Rolle schreiben (falls du 'role' im Schema hast)
+      await db.upsertUser({
+        openId,
+        name,
+        lastSignedIn: new Date(),
+        role: isAdmin ? "admin" : "user",
+      });
+
+      // Session-Token mit Rollen-Claim ausstellen
+      const token = await sdk.createSessionToken(openId, {
+        name,
+        roles: isAdmin ? ["admin"] : ["user"],
+        expiresInMs: ONE_YEAR_MS,
+      });
+
       const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      res.cookie(COOKIE_NAME, token, {
+        ...cookieOptions,
+        maxAge: ONE_YEAR_MS,
+      });
       res.redirect(302, "/");
     });
   }
+
   // tRPC API
   app.use(
     "/api/trpc",
@@ -60,6 +97,7 @@ async function startServer() {
       createContext,
     })
   );
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
@@ -68,14 +106,18 @@ async function startServer() {
   }
 
   const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = await findAvailablePort(preferredPort);
+  // Inside Docker, bind exactly to PORT to match published ports
+  const runningInDocker = fs.existsSync("/.dockerenv");
+  const port = runningInDocker
+    ? preferredPort
+    : await findAvailablePort(preferredPort);
 
-  if (port !== preferredPort) {
+  if (!runningInDocker && port !== preferredPort) {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
-  server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
+  server.listen(port, "0.0.0.0", () => {
+    console.log(`Server running on http://0.0.0.0:${port}/`);
   });
 }
 

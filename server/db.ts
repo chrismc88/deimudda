@@ -1,7 +1,7 @@
 import { eq, desc, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, sellerProfiles, listings, transactions, bids, reviews, User, SellerProfile, Listing, Transaction } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import { InsertUser, users, sellerProfiles, listings, transactions, reviews, User, SellerProfile, Listing, Transaction } from "../drizzle/schema";
+import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -178,10 +178,10 @@ export async function createListing(sellerId: number, listing: {
   strain: string;
   description?: string;
   quantity: number;
-  priceType: "fixed" | "auction";
+  priceType: "fixed" | "offer";
   fixedPrice?: number | string;
-  auctionStartPrice?: number | string;
-  auctionEndTime?: Date;
+  offerMinPrice?: number | string;
+  acceptsOffers?: boolean;
   imageUrl?: string;
   images?: string;
   shippingVerified?: boolean;
@@ -201,6 +201,8 @@ export async function createListing(sellerId: number, listing: {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
+  const acceptsOffers = listing.acceptsOffers ?? listing.priceType === "offer";
+
   return db.insert(listings).values({
     sellerId,
     type: listing.type,
@@ -211,8 +213,8 @@ export async function createListing(sellerId: number, listing: {
     shippingPickup: listing.shippingPickup !== undefined ? listing.shippingPickup : false,
     priceType: listing.priceType,
     fixedPrice: listing.fixedPrice ? String(listing.fixedPrice) : undefined,
-    auctionStartPrice: listing.auctionStartPrice ? String(listing.auctionStartPrice) : undefined,
-    auctionEndTime: listing.auctionEndTime,
+    offerMinPrice: listing.offerMinPrice ? String(listing.offerMinPrice) : undefined,
+    acceptsOffers,
     imageUrl: listing.imageUrl,
     images: listing.images,
     status: "active", // Automatically set to active
@@ -403,4 +405,3 @@ export async function updateSellerRating(sellerId: number) {
     .set({ rating: averageRating, totalReviews: allReviews.length })
     .where(eq(sellerProfiles.userId, sellerId));
 }
-
