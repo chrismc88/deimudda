@@ -74,18 +74,26 @@ async function startServer() {
 
       const isAdmin = byParam || openId === OWNER_OPEN_ID;
 
+      // Check if user already exists and preserve their role
+      const existingUser = await db.getUserByOpenId(openId);
+      const shouldPreserveRole = existingUser && ['admin', 'super_admin'].includes(existingUser.role);
+
       // DB: User upserten + Rolle schreiben (falls du 'role' im Schema hast)
       await db.upsertUser({
         openId,
         name,
         lastSignedIn: new Date(),
-        role: isAdmin ? "admin" : "user",
+        // Preserve existing admin/super_admin role, otherwise use isAdmin logic
+        role: shouldPreserveRole ? existingUser.role : (isAdmin ? "admin" : "user"),
       });
 
       // Session-Token mit Rollen-Claim ausstellen
+      const finalUser = await db.getUserByOpenId(openId);
+      const userRole = finalUser?.role || (isAdmin ? "admin" : "user");
+      
       const token = await sdk.createSessionToken(openId, {
         name,
-        roles: isAdmin ? ["admin"] : ["user"],
+        roles: [userRole],
         expiresInMs: ONE_YEAR_MS,
       });
 
