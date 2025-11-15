@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "wouter";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,11 +9,26 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Filter } from "lucide-react";
 
 export default function BrowseListings() {
+  const [location] = useLocation();
+  
+  // Get initial search query from URL parameter
+  const initialSearchQuery = (() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("search") || "";
+  })();
+
   const [limit] = useState(50);
   const [offset, setOffset] = useState(0);
   const [filterType, setFilterType] = useState<"all" | "cutting" | "seed">("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [sortBy, setSortBy] = useState<"newest" | "price-low" | "price-high">("newest");
+
+  // Update search query when URL changes
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlSearch = params.get("search") || "";
+    setSearchQuery(urlSearch);
+  }, [location]);
 
   const listings = trpc.listing.getActive.useQuery({ limit, offset });
 

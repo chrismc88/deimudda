@@ -2,6 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import ImageUpload from "@/components/ImageUpload";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,10 +10,12 @@ import { trpc } from "@/lib/trpc";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import { Header } from "@/components/Header";
 
 export default function Profile() {
-  const { user, loading } = useAuth();
+  const { user, loading, refresh } = useAuth();
   const [, setLocation] = useLocation();
+  const utils = trpc.useUtils();
 
   const [formData, setFormData] = useState({
     nickname: "",
@@ -20,7 +23,7 @@ export default function Profile() {
     profileImageUrl: "",
   });
 
-  // Load user data when available
+  // Update formData when user data is loaded
   useEffect(() => {
     if (user) {
       setFormData({
@@ -37,9 +40,10 @@ export default function Profile() {
   });
 
   const updateProfile = trpc.profile.update.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Profil erfolgreich aktualisiert!");
-      window.location.reload();
+      // Invalidate and refetch user data (no need for refresh())
+      await utils.auth.me.invalidate();
     },
     onError: (error) => {
       toast.error("Fehler beim Aktualisieren: " + error.message);
@@ -56,6 +60,7 @@ export default function Profile() {
     },
   });
 
+
   const deactivateSeller = trpc.profile.deactivateSeller.useMutation({
     onSuccess: () => {
       toast.success("Verkäufer-Modus deaktiviert!");
@@ -66,8 +71,24 @@ export default function Profile() {
     },
   });
 
+  const deleteAccount = trpc.profile.deleteAccount.useMutation({
+    onSuccess: () => {
+      toast.success("Account erfolgreich gelöscht!");
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 1500);
+    },
+    onError: (error) => {
+      console.error("[Profile] Delete account error:", error);
+      toast.error("Fehler beim Löschen: " + error.message);
+    },
+  });
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
   const handleUpdateProfile = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("[Profile] Submitting update with formData:", formData);
     updateProfile.mutate(formData);
   };
 
@@ -97,8 +118,9 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container max-w-4xl">
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <div className="container max-w-4xl py-8">
         <h1 className="text-3xl font-bold mb-8">Mein Profil</h1>
 
         {/* Basic Profile */}
@@ -158,6 +180,13 @@ export default function Profile() {
           </CardContent>
         </Card>
 
+        {/* Hinweis Nickname vs Verkäufername (optional, kein Debug mehr) */}
+        {user.isSellerActive && (
+          <div className="mb-6 text-xs text-gray-600 bg-white border rounded p-3">
+            <strong>Hinweis:</strong> Dein öffentlicher Verkäufername (Shop) wird separat im Verkäufer-Dashboard verwaltet. Im Chat später: <code>{`ShopName (Nickname)`}</code>.
+          </div>
+        )}
+
         {/* Seller Mode */}
         <Card>
           <CardHeader>
@@ -177,8 +206,7 @@ export default function Profile() {
                     Sie können jetzt Angebote erstellen und verwalten
                   </p>
                 </div>
-
-                <div className="flex gap-4">
+                <div className="flex gap-4 flex-wrap">
                   <Button onClick={() => setLocation("/seller/dashboard")} variant="default">
                     Zum Verkäufer-Dashboard
                   </Button>
@@ -227,6 +255,74 @@ export default function Profile() {
                 </Button>
               </form>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Account Deletion */}
+        <Card className="border-red-200">
+          <CardHeader>
+            <CardTitle className="text-red-600">Gefahrenzone</CardTitle>
+            <CardDescription>Account unwiderruflich löschen (DSGVO-konform)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+              <p className="text-red-800 font-medium">⚠️ Warnung: Diese Aktion kann nicht rückgängig gemacht werden!</p>
+              <p className="text-red-600 text-sm mt-2">
+                Alle Ihre Daten werden permanent gelöscht:
+              </p>
+              <ul className="text-red-600 text-sm mt-2 ml-4 list-disc">
+                <li>Profil und Verkäufer-Informationen</li>
+                <li>Alle Listings und Angebote</li>
+                <li>Transaktionen und Bewertungen</li>
+                <li>Nachrichten und Benachrichtigungen</li>
+                <li>Verwarnungen und Admin-Logs</li>
+              </ul>
+            </div>
+
+            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="destructive">
+                  Account löschen
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Account wirklich löschen?</DialogTitle>
+                  <DialogDescription>
+                    Diese Aktion kann nicht rückgängig gemacht werden. Alle Ihre Daten werden permanent aus unserer Datenbank entfernt.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 my-4">
+                  <p className="text-yellow-800 text-sm">
+                    ⚠️ Bitte bestätigen Sie, dass Sie verstehen:
+                  </p>
+                  <ul className="text-yellow-700 text-sm mt-2 ml-4 list-disc">
+                    <li>Ihr Account wird sofort gelöscht</li>
+                    <li>Sie werden ausgeloggt</li>
+                    <li>Alle Daten sind unwiederbringlich verloren</li>
+                    <li>Laufende Transaktionen werden abgebrochen</li>
+                  </ul>
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsDeleteDialogOpen(false)}
+                  >
+                    Abbrechen
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      deleteAccount.mutate();
+                      setIsDeleteDialogOpen(false);
+                    }}
+                    disabled={deleteAccount.isPending}
+                  >
+                    {deleteAccount.isPending ? "Lösche..." : "Ja, Account löschen"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
       </div>

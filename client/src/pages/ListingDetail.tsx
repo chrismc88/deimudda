@@ -4,15 +4,27 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, ShoppingCart, Gavel, MapPin, User } from "lucide-react";
+import { AlertCircle, ShoppingCart, Gavel, MapPin, User, Flag } from "lucide-react";
 import { ImageGallery } from "@/components/ImageGallery";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { useState } from "react";
 import NotFound from "./NotFound";
 
 export default function ListingDetail() {
   const { id } = useParams<{ id: string }>();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const listingId = parseInt(id || "0");
+  const utils = trpc.useUtils();
+
+  // Report state
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportMessage, setReportMessage] = useState("");
 
   const listing = trpc.listing.getById.useQuery(listingId, {
     enabled: !!id,
@@ -25,6 +37,32 @@ export default function ListingDetail() {
   const reviews = trpc.review.getBySellerId.useQuery(listing.data?.sellerId || 0, {
     enabled: !!listing.data?.sellerId,
   });
+
+  // Report mutation
+  const createReport = trpc.admin.createReport.useMutation({
+    onSuccess: () => {
+      toast.success("Meldung erfolgreich abgeschickt");
+      setReportDialogOpen(false);
+      setReportReason("");
+      setReportMessage("");
+    },
+    onError: (error) => {
+      toast.error(`Fehler: ${error.message}`);
+    },
+  });
+
+  const handleReport = () => {
+    if (!reportReason) {
+      toast.error("Bitte wähle einen Grund aus");
+      return;
+    }
+    createReport.mutate({
+      reportedType: 'listing',
+      reportedId: listingId,
+      reason: reportReason,
+      message: reportMessage,
+    });
+  };
 
   if (listing.isLoading) {
     return (
@@ -366,6 +404,71 @@ export default function ListingDetail() {
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Report Card */}
+            {isAuthenticated && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Problem melden</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full gap-2">
+                        <Flag className="w-4 h-4" />
+                        Listing melden
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Listing melden</DialogTitle>
+                        <DialogDescription>
+                          Bitte beschreibe das Problem mit diesem Listing. Unsere Admins werden sich darum kümmern.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="reason">Grund *</Label>
+                          <Select value={reportReason} onValueChange={setReportReason}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Wähle einen Grund" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="spam">Spam</SelectItem>
+                              <SelectItem value="fake">Fake / Betrügerisches Angebot</SelectItem>
+                              <SelectItem value="illegal">Illegale Inhalte</SelectItem>
+                              <SelectItem value="inappropriate">Unangemessene Inhalte</SelectItem>
+                              <SelectItem value="duplicate">Doppeltes Listing</SelectItem>
+                              <SelectItem value="wrong_category">Falsche Kategorie</SelectItem>
+                              <SelectItem value="price_issue">Preis-Probleme</SelectItem>
+                              <SelectItem value="other">Sonstiges</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="message">Nachricht (optional)</Label>
+                          <Textarea
+                            id="message"
+                            placeholder="Weitere Details..."
+                            value={reportMessage}
+                            onChange={(e) => setReportMessage(e.target.value)}
+                            rows={4}
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setReportDialogOpen(false)}>
+                          Abbrechen
+                        </Button>
+                        <Button onClick={handleReport} disabled={createReport.isPending}>
+                          {createReport.isPending ? "Wird gesendet..." : "Meldung abschicken"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

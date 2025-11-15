@@ -4,7 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { APP_TITLE, getLoginUrl } from "@/const";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { ShoppingCart, Leaf, TrendingUp, Lock, Zap, Users } from "lucide-react";
+import { ShoppingCart, Leaf, TrendingUp, Lock, Zap, Users, Search } from "lucide-react";
+import { Header } from "@/components/Header";
+import { useState } from "react";
+import { useLocation } from "wouter";
 
 // Dev-Login sichtbar machen: in DEV oder via .env Flag
 const DEV_LOGIN_URL = "/api/dev-login?openId=dev-user&name=Dev%20User";
@@ -13,46 +16,22 @@ const SHOW_DEV = import.meta.env.DEV || import.meta.env.VITE_SHOW_DEV_LOGIN === 
 export default function Home() {
   const { user, isAuthenticated, logout } = useAuth();
   const activeListings = trpc.listing.getActive.useQuery({ limit: 6 });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [, setLocation] = useLocation();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      setLocation(`/browse?search=${encodeURIComponent(searchQuery)}`);
+    } else {
+      setLocation('/browse');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Navigation */}
-      <nav className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <img src="/seedling-logo.png" alt="deimudda Logo" className="h-10 w-10" />
-            <h1 className="text-2xl font-bold text-green-700">{APP_TITLE}</h1>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {isAuthenticated ? (
-              <>
-                <span className="text-sm text-gray-600">Hallo, {user?.name}</span>
-                <Link href="/profile">
-                  <Button variant="outline" size="sm">Dashboard</Button>
-                </Link>
-                <Button variant="ghost" size="sm" onClick={() => logout()}>Logout</Button>
-              </>
-            ) : (
-              <>
-                <Button size="sm" onClick={() => (window.location.href = getLoginUrl())}>
-                  Login / Registrieren
-                </Button>
-                {SHOW_DEV && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => (window.location.href = DEV_LOGIN_URL)}
-                    title="Setzt lokal ein Session-Cookie"
-                  >
-                    Dev Login
-                  </Button>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      </nav>
+      <Header />
 
       {/* Hero Section */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
@@ -67,6 +46,25 @@ export default function Home() {
           Die erste legale Marktplattform für Cannabis-Vermehrungsmaterial in Deutschland.
           Kaufen und verkaufen Sie Stecklinge und Samen sicher und transparent.
         </p>
+
+        {/* Search Bar */}
+        <form onSubmit={handleSearch} className="max-w-2xl mx-auto mb-8">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Suche nach Strain, Typ, Verkäufer..."
+              className="w-full px-6 py-4 pr-14 text-lg border-2 border-gray-300 rounded-full focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 transition"
+            />
+            <button
+              type="submit"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-green-600 text-white p-3 rounded-full hover:bg-green-700 transition"
+            >
+              <Search className="w-5 h-5" />
+            </button>
+          </div>
+        </form>
 
         <div className="flex gap-4 justify-center flex-wrap">
           <Link href="/profile">
@@ -313,7 +311,38 @@ export default function Home() {
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-400 py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* ... (unverändert) */}
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <h4 className="text-white font-bold mb-4">deimudda</h4>
+              <p className="text-sm">
+                Die erste legale Marktplattform für Cannabis-Stecklinge und Samen in Deutschland.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Rechtliches</h4>
+              <ul className="space-y-2 text-sm text-gray-400">
+                <li><a href="/terms" className="hover:text-white">Nutzungsbedingungen</a></li>
+                <li><a href="/datenschutz" className="hover:text-white">Datenschutz</a></li>
+                <li><a href="/impressum" className="hover:text-white">Impressum</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-white font-bold mb-4">Plattform</h4>
+              <ul className="text-sm space-y-2">
+                <li><a href="/about" className="hover:text-white">Über uns</a></li>
+                <li><a href="/contact" className="hover:text-white">Kontakt</a></li>
+                <li><a href="/faq" className="hover:text-white">FAQ</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-white font-bold mb-4">Verkäufer</h4>
+              <ul className="text-sm space-y-2">
+                <li><a href="/seller-guidelines" className="hover:text-white">Verkäufer-Richtlinien</a></li>
+                <li><a href="/fee-structure" className="hover:text-white">Gebührenstruktur</a></li>
+                <li><a href="/support" className="hover:text-white">Support</a></li>
+              </ul>
+            </div>
+          </div>
           <div className="border-t border-gray-800 pt-8 text-center text-sm">
             <p>&copy; 2025 deimudda. Alle Rechte vorbehalten.</p>
             <p className="mt-2 text-xs">

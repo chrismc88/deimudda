@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Plus, Edit2, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
+import DashboardLayout from "@/components/DashboardLayout";
 
 type ListingFormState = {
   type: "cutting" | "seed";
@@ -308,8 +309,9 @@ export default function SellerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
-      <div className="max-w-6xl mx-auto">
+    <DashboardLayout>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+        <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Seller Dashboard</h1>
@@ -1029,6 +1031,7 @@ export default function SellerDashboard() {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
