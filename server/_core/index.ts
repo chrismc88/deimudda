@@ -12,6 +12,7 @@ import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./cookies";
 import * as db from "../db";
 import { sdk } from "./sdk";
+import "../testAdmin"; // Create test admin user
 
 const OWNER_OPEN_ID = process.env.OWNER_OPEN_ID ?? "admin-local";
 
@@ -51,7 +52,15 @@ async function startServer() {
   registerOAuthRoutes(app);
 
   // Dev-only login helper: set a session cookie without external OAuth
-  if (process.env.NODE_ENV === "development") {
+  // Gated by DEV_LOGIN_ENABLED flag (default: enabled in development)
+  const devLoginEnabled = !["0", "false", "no"].includes(
+    String(process.env.DEV_LOGIN_ENABLED || "true").toLowerCase()
+  );
+  
+  if (process.env.NODE_ENV === "development" && devLoginEnabled) {
+    console.log("⚠️  Dev login endpoints ACTIVE (/api/dev-login, /api/dev/admin-login)");
+    console.log("    To disable: Set DEV_LOGIN_ENABLED=false");
+    
     app.get("/api/dev-login", async (req, res) => {
       const openId =
         typeof req.query.openId === "string" ? req.query.openId : "dev-user";
@@ -87,6 +96,41 @@ async function startServer() {
       });
       res.redirect(302, "/");
     });
+
+    // Admin login endpoint for DevAdminLogin component
+    app.post("/api/dev/admin-login", async (req, res) => {
+      try {
+        const { email } = req.body;
+        const openId = email || "admin@test.com";
+
+        // Get user from DB to check if they exist and their role
+        const user = await db.getUserByEmail(openId);
+        
+        if (!user || !["admin", "super_admin"].includes(user.role)) {
+          return res.status(403).json({ error: "User is not an admin" });
+        }
+
+        // Create session token with admin role
+        const token = await sdk.createSessionToken(user.openId, {
+          name: user.name,
+          roles: [user.role],
+          expiresInMs: ONE_YEAR_MS,
+        });
+
+        const cookieOptions = getSessionCookieOptions(req);
+        res.cookie(COOKIE_NAME, token, {
+          ...cookieOptions,
+          maxAge: ONE_YEAR_MS,
+        });
+
+        res.json({ success: true, user: { name: user.name, role: user.role } });
+      } catch (error) {
+        console.error("Admin login error:", error);
+        res.status(500).json({ error: "Login failed" });
+      }
+    });
+  } else if (process.env.NODE_ENV === "development" && !devLoginEnabled) {
+    console.log("✅ Dev login endpoints DISABLED (set DEV_LOGIN_ENABLED=true to enable)");
   }
 
   // tRPC API
