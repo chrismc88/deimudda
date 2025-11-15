@@ -60,11 +60,11 @@ export default function Checkout() {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                listingId: listing.data.id,
+                listingId: listing.data?.id,
                 quantity,
                 amount: totalAmount,
                 buyerId: user?.id,
-                sellerId: listing.data.sellerId,
+                sellerId: listing.data?.sellerId,
               }),
             });
 
@@ -278,7 +278,8 @@ export default function Checkout() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setQuantity(Math.min(listing.data.quantity, quantity + 1))}
+                    onClick={() => setQuantity(Math.min(listing.data?.quantity || 1, quantity + 1))}
+                    disabled={quantity >= (listing.data?.quantity || 1)}
                   >
                     +
                   </Button>
