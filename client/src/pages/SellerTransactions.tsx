@@ -1,10 +1,10 @@
 import { useState } from "react";
+import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import type { Transaction } from "@/../../shared/types";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Header } from "@/components/Header";
 import BackButton from "@/components/BackButton";
 import { Euro, TrendingUp, ShoppingBag, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -37,8 +37,7 @@ export default function SellerTransactions() {
   };
 
   return (
-    <>
-      <Header />
+    <DashboardLayout>
       <div className="container mx-auto px-4 py-8">
         <BackButton href="/seller/dashboard" label="Zurück zum Verkäufer-Dashboard" />
         
@@ -185,7 +184,7 @@ export default function SellerTransactions() {
           </CardContent>
         </Card>
       </div>
-    </>
+    </DashboardLayout>
   );
 }
 

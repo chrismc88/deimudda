@@ -27,10 +27,19 @@ import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
 
-const menuItems = [
+type MenuItem = {
+  icon: any;
+  label: string;
+  path: string;
+  roles?: Array<"user" | "admin" | "super_admin">;
+  showIf?: (u: { role: string; isSellerActive?: boolean } | null) => boolean;
+};
+
+const baseMenuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/", roles: ["user", "admin", "super_admin"] },
   { icon: ShoppingBag, label: "Käufer-Bereich", path: "/buyer/dashboard", roles: ["user", "admin", "super_admin"] },
-  { icon: ShoppingBag, label: "Verkäufer-Bereich", path: "/seller/dashboard", roles: ["user", "admin", "super_admin"] },
+  // Seller area only for active sellers or admins
+  { icon: ShoppingBag, label: "Verkäufer-Bereich", path: "/seller/dashboard", roles: ["user", "admin", "super_admin"], showIf: (u) => Boolean(u && (u.role !== "user" ? true : u.isSellerActive)) },
   { icon: MessageSquare, label: "Nachrichten", path: "/messages", roles: ["user", "admin", "super_admin"] },
   { icon: Users, label: "Benutzerverwaltung", path: "/admin/users", roles: ["admin", "super_admin"] },
   { icon: Shield, label: "Admin-Verwaltung", path: "/admin/management", roles: ["super_admin"] },
@@ -156,7 +165,7 @@ function DashboardLayoutContent({
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const activeMenuItem = menuItems.find((item) => item.path === location);
+  const activeMenuItem = baseMenuItems.find((item) => item.path === location);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -245,8 +254,9 @@ function DashboardLayoutContent({
 
           <SidebarContent className="gap-0">
             <SidebarMenu className="px-2 py-1">
-              {menuItems
+              {baseMenuItems
                 .filter((item) => !item.roles || item.roles.includes(user?.role || "user"))
+                .filter((item) => !item.showIf || item.showIf(user))
                 .map((item) => {
                   const isActive = location === item.path;
                   return (

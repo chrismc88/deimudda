@@ -1,4 +1,5 @@
 import { useState } from "react";
+import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { MultiImageUpload } from "@/components/MultiImageUpload";
@@ -12,7 +13,6 @@ import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Plus, Edit2, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import DashboardLayout from "@/components/DashboardLayout";
 
 type ListingFormState = {
   type: "cutting" | "seed";
@@ -184,34 +184,39 @@ export default function SellerDashboard() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Zugriff verweigert</CardTitle>
-            <CardDescription>Bitte melden Sie sich an, um auf das Seller-Dashboard zuzugreifen.</CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
+      <DashboardLayout>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Zugriff verweigert</CardTitle>
+              <CardDescription>Bitte melden Sie sich an, um auf das Seller-Dashboard zuzugreifen.</CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </DashboardLayout>
     );
   }
 
   // Show loading state
   if (sellerProfile.isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Lade Profil...</p>
+      <DashboardLayout>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Lade Profil...</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   // Show profile creation if user doesn't have a seller profile
   if (!sellerProfile.data) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
-        <div className="max-w-2xl mx-auto">
+      <DashboardLayout>
+        <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+          <div className="max-w-2xl mx-auto">
           <Card>
             <CardHeader>
               <CardTitle>Verkäufer-Profil erstellen</CardTitle>
@@ -303,15 +308,16 @@ export default function SellerDashboard() {
               </form>
             </CardContent>
           </Card>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
-        <div className="max-w-6xl mx-auto">
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Seller Dashboard</h1>
@@ -1031,7 +1037,7 @@ export default function SellerDashboard() {
           </CardContent>
         </Card>
       </div>
-      </div>
+    </div>
     </DashboardLayout>
   );
 }

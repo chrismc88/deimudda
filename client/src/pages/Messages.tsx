@@ -8,6 +8,7 @@ import { MessageCircle, Send, AlertCircle } from "lucide-react";
 import { Header } from "@/components/Header";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
+import DashboardLayout from "@/components/DashboardLayout";
 
 export default function Messages() {
   const { user, isAuthenticated } = useAuth();
@@ -20,26 +21,29 @@ export default function Messages() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle>Zugriff verweigert</CardTitle>
-            <CardDescription>
-              Sie müssen eingeloggt sein, um Ihre Nachrichten zu sehen.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/">
-              <Button>Zur Startseite</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
+      <DashboardLayout>
+        <div className="min-h-[60vh] bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+          <Card className="max-w-md">
+            <CardHeader>
+              <CardTitle>Zugriff verweigert</CardTitle>
+              <CardDescription>
+                Sie müssen eingeloggt sein, um Ihre Nachrichten zu sehen.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/">
+                <Button>Zur Startseite</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <DashboardLayout>
+      <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-50 to-slate-100">
       <Header />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
@@ -148,7 +152,8 @@ export default function Messages() {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
 

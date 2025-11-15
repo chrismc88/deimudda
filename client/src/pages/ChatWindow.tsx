@@ -10,7 +10,7 @@ import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { Header } from "@/components/Header";
+import DashboardLayout from "@/components/DashboardLayout";
 
 export default function ChatWindow() {
   const { user, isAuthenticated } = useAuth();
@@ -57,28 +57,30 @@ export default function ChatWindow() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle>Zugriff verweigert</CardTitle>
-            <CardDescription>
-              Sie müssen eingeloggt sein, um Nachrichten zu sehen.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/">
-              <Button>Zur Startseite</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
+      <DashboardLayout>
+        <div className="min-h-[60vh] bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+          <Card className="max-w-md">
+            <CardHeader>
+              <CardTitle>Zugriff verweigert</CardTitle>
+              <CardDescription>
+                Sie müssen eingeloggt sein, um Nachrichten zu sehen.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/">
+                <Button>Zur Startseite</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <Header />
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <DashboardLayout>
+      <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <Link href="/messages">
             <Button variant="outline" size="sm" className="hidden">
@@ -181,8 +183,9 @@ export default function ChatWindow() {
             </form>
           </div>
         </Card>
+        </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
 
