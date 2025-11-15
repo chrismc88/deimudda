@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import { Link, useLocation } from "wouter";
 import { MessageCircle, Send, AlertCircle } from "lucide-react";
-import { Header } from "@/components/Header";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -43,8 +42,6 @@ export default function Messages() {
 
   return (
     <DashboardLayout>
-      <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-50 to-slate-100">
-      <Header />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* Legal Disclaimer */}
@@ -151,7 +148,6 @@ export default function Messages() {
             )}
           </CardContent>
         </Card>
-      </div>
       </div>
     </DashboardLayout>
   );
