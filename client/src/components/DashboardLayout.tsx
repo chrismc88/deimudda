@@ -29,8 +29,8 @@ import { Button } from "./ui/button";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/", roles: ["user", "admin", "super_admin"] },
-  { icon: ShoppingBag, label: "Käufer-Bereich", path: "/buyer", roles: ["user", "admin", "super_admin"] },
-  { icon: ShoppingBag, label: "Verkäufer-Bereich", path: "/seller", roles: ["user", "admin", "super_admin"] },
+  { icon: ShoppingBag, label: "Käufer-Bereich", path: "/buyer/dashboard", roles: ["user", "admin", "super_admin"] },
+  { icon: ShoppingBag, label: "Verkäufer-Bereich", path: "/seller/dashboard", roles: ["user", "admin", "super_admin"] },
   { icon: MessageSquare, label: "Nachrichten", path: "/messages", roles: ["user", "admin", "super_admin"] },
   { icon: Users, label: "Benutzerverwaltung", path: "/admin/users", roles: ["admin", "super_admin"] },
   { icon: Shield, label: "Admin-Verwaltung", path: "/admin/management", roles: ["super_admin"] },

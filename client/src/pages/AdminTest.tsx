@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Shield, Settings, Users, BarChart3 } from "lucide-react";
+import { Link } from "wouter";
 
 export default function AdminTest() {
   const { user } = useAuth();
@@ -45,7 +46,7 @@ export default function AdminTest() {
                 Test user moderation features like warn, suspend, and ban.
               </p>
               <Button asChild className="w-full">
-                <a href="/admin/users">Test User Management</a>
+                <Link href="/admin/users">Test User Management</Link>
               </Button>
             </CardContent>
           </Card>
@@ -62,7 +63,7 @@ export default function AdminTest() {
                 View platform statistics and business intelligence.
               </p>
               <Button asChild className="w-full">
-                <a href="/admin/stats">Test Analytics</a>
+                <Link href="/admin/stats">Test Analytics</Link>
               </Button>
             </CardContent>
           </Card>
@@ -79,7 +80,7 @@ export default function AdminTest() {
                 Configure platform settings and security options.
               </p>
               <Button asChild className="w-full">
-                <a href="/admin/settings">Test Settings</a>
+                <Link href="/admin/settings">Test Settings</Link>
               </Button>
             </CardContent>
           </Card>
@@ -96,7 +97,7 @@ export default function AdminTest() {
                 Manage IP blocking and security monitoring.
               </p>
               <Button asChild className="w-full">
-                <a href="/admin/security">Test Security</a>
+                <Link href="/admin/security">Test Security</Link>
               </Button>
             </CardContent>
           </Card>

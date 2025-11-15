@@ -114,9 +114,7 @@ export default function ListingDetail() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Back Button */}
-        <a href="/" className="text-blue-600 hover:text-blue-800 mb-6 inline-block">
-          ← Zurück
-        </a>
+        <BackButton useHistory={true} label="Zurück" />
 
         <div className="grid md:grid-cols-3 gap-8">
           {/* Main Content */}
@@ -355,12 +353,12 @@ export default function ListingDetail() {
                     {data.status === "active" ? (
                       <>
                         {data.priceType === "fixed" ? (
-                          <a href={`/checkout/${data.id}`}>
+                          <Link href={`/checkout/${data.id}`}>
                             <Button className="w-full gap-2" size="lg">
                               <ShoppingCart className="w-5 h-5" />
                               Jetzt kaufen
                             </Button>
-                          </a>
+                          </Link>
                         ) : (
                           <Button className="w-full gap-2" size="lg" variant="outline">
                             <Gavel className="w-5 h-5" />

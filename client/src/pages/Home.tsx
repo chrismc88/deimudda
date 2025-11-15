@@ -6,6 +6,7 @@ import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { ShoppingCart, Leaf, TrendingUp, Lock, Zap, Users, Search } from "lucide-react";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import { useState } from "react";
 import { useLocation } from "wouter";
 
@@ -308,49 +309,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400 py-8">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <h4 className="text-white font-bold mb-4">deimudda</h4>
-              <p className="text-sm">
-                Die erste legale Marktplattform für Cannabis-Stecklinge und Samen in Deutschland.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Rechtliches</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="/terms" className="hover:text-white">Nutzungsbedingungen</a></li>
-                <li><a href="/datenschutz" className="hover:text-white">Datenschutz</a></li>
-                <li><a href="/impressum" className="hover:text-white">Impressum</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-bold mb-4">Plattform</h4>
-              <ul className="text-sm space-y-2">
-                <li><a href="/about" className="hover:text-white">Über uns</a></li>
-                <li><a href="/contact" className="hover:text-white">Kontakt</a></li>
-                <li><a href="/faq" className="hover:text-white">FAQ</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-bold mb-4">Verkäufer</h4>
-              <ul className="text-sm space-y-2">
-                <li><a href="/seller-guidelines" className="hover:text-white">Verkäufer-Richtlinien</a></li>
-                <li><a href="/fee-structure" className="hover:text-white">Gebührenstruktur</a></li>
-                <li><a href="/support" className="hover:text-white">Support</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 pt-8 text-center text-sm">
-            <p>&copy; 2025 deimudda. Alle Rechte vorbehalten.</p>
-            <p className="mt-2 text-xs">
-              Stecklinge sind legales Vermehrungsmaterial nach dem Konsumcannabisgesetz (KCanG).
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

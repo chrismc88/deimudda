@@ -3,6 +3,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import type { User } from "@/../../shared/types";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import AdminNav from "./AdminNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -304,6 +305,8 @@ export default function AdminUsers() {
           </Button>
         </Link>
       </div>
+
+      <AdminNav />
 
       <div className="flex items-center justify-between mb-8">
         <div>

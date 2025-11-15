@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import type { Listing } from "@/../../shared/types";
 import { trpc } from "@/lib/trpc";
+import AdminNav from "./AdminNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -164,6 +165,8 @@ export default function AdminListings() {
           </Button>
         </Link>
       </div>
+
+      <AdminNav />
 
       <div className="flex items-center justify-between mb-8">
         <div>

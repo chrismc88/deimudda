@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import AdminNav from "./AdminNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,13 +48,15 @@ export default function AdminDashboard() {
         </Link>
       </div>
 
+      <AdminNav />
+
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Admin-Dashboard</h1>
             <p className="text-gray-600 mt-2">
-              Willkommen, {user.name}
+              Willkommen, {user.name}{' '}
               {user.role === 'super_admin' ? (
                 <Badge className="ml-2 bg-purple-600">Super Admin</Badge>
               ) : user.role === 'admin' ? (

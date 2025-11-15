@@ -8,6 +8,7 @@ import { Link } from "wouter";
 import { ArrowLeft, UserPlus, UserMinus, Shield, Users } from "lucide-react";
 import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
+import AdminNav from "./AdminNav";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
 
@@ -61,6 +62,9 @@ export default function AdminManagement() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <BackButton href="/admin" label="Zurück zum Dashboard" />
+        
+        <AdminNav />
+        
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <Shield className="h-8 w-8 text-purple-600" />

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import type { Transaction } from "@/../../shared/types";
 import { trpc } from "@/lib/trpc";
+import AdminNav from "./AdminNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -92,6 +93,8 @@ export default function AdminTransactions() {
           </Button>
         </Link>
       </div>
+      
+      <AdminNav />
       
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">

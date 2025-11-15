@@ -1414,7 +1414,7 @@ export async function getUnreadNotificationCount(userId: number) {
       .select({ count: sql<number>`COUNT(*)` })
       .from(notifications)
       .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
-    console.log('[Database] getUnreadNotificationCount for user', userId, '=>', count);
+    // Verbose: console.log('[Database] getUnreadNotificationCount for user', userId, '=>', count);
     return count || 0;
   } catch (error) {
     console.error("[Database] Failed to get unread notification count", error);
@@ -1666,7 +1666,7 @@ export async function getUnreadMessageCount(userId: number) {
       .select({ count: sql<number>`COUNT(*)` })
       .from(messages)
       .where(and(eq(messages.receiverId, userId), eq(messages.isRead, false)));
-    console.log('[Database] getUnreadMessageCount for user', userId, '=>', count);
+    // Verbose: console.log('[Database] getUnreadMessageCount for user', userId, '=>', count);
     return count || 0;
   } catch (error) {
     console.error('[Database] Failed to get unread message count', error);

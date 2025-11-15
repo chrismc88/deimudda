@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useLocation } from "wouter";
+import { useParams, useLocation, Link } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -218,9 +218,9 @@ export default function Checkout() {
                     />
                     <span className="text-sm">
                       Ich bestätige, dass ich mindestens 18 Jahre alt bin und die{" "}
-                      <a href="/age-verification" className="text-blue-600 hover:underline">
+                      <Link href="/age-verification" className="text-blue-600 hover:underline">
                         Altersverifikation
-                      </a>{" "}
+                      </Link>{" "}
                       akzeptiere.
                     </span>
                   </label>
@@ -234,17 +234,17 @@ export default function Checkout() {
                     />
                     <span className="text-sm">
                       Ich akzeptiere die{" "}
-                      <a href="/terms" className="text-blue-600 hover:underline">
+                      <Link href="/terms" className="text-blue-600 hover:underline">
                         Nutzungsbedingungen
-                      </a>
+                      </Link>
                       ,{" "}
-                      <a href="/privacy" className="text-blue-600 hover:underline">
+                      <Link href="/privacy" className="text-blue-600 hover:underline">
                         Datenschutzerklärung
-                      </a>{" "}
+                      </Link>{" "}
                       und{" "}
-                      <a href="/widerruf" className="text-blue-600 hover:underline">
+                      <Link href="/widerruf" className="text-blue-600 hover:underline">
                         Widerrufsbelehrung
-                      </a>
+                      </Link>
                       .
                     </span>
                   </label>

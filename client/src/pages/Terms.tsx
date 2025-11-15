@@ -1,12 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import BackButton from "@/components/BackButton";
 
 export default function Terms() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <a href="/" className="text-blue-600 hover:text-blue-800 mb-6 inline-block">
-          ← Zurück
-        </a>
+        <BackButton href="/" label="Zurück" />
 
         <h1 className="text-4xl font-bold mb-8">Nutzungsbedingungen & Rechtliche Hinweise</h1>
 

@@ -1,5 +1,6 @@
 import BackButton from "@/components/BackButton";
 import { Mail, Phone, MapPin, Instagram, MessageCircle } from "lucide-react";
+import { Link } from "wouter";
 
 export default function Contact() {
   return (
@@ -209,7 +210,7 @@ export default function Contact() {
               <h2 className="text-2xl font-bold mb-4">Häufig gestellte Fragen</h2>
               
               <p className="text-gray-700 mb-4">
-                Viele Fragen werden bereits in unseren <a href="/faq" className="text-green-600 hover:underline font-semibold">FAQ</a> beantwortet. 
+                Viele Fragen werden bereits in unseren <Link href="/faq" className="text-green-600 hover:underline font-semibold">FAQ</Link> beantwortet. 
                 Schau dort gerne zuerst nach, bevor du uns kontaktierst!
               </p>
 

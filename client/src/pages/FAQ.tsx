@@ -2,6 +2,7 @@ import BackButton from "@/components/BackButton";
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { Link } from "wouter";
 
 interface FAQItem {
   question: string;
@@ -213,7 +214,7 @@ export default function FAQ() {
           ausgeschlossen sein (§ 312g Abs. 2 Nr. 2 BGB), besonders wenn die Verpackung bereits geöffnet wurde.
         </p>
         <p className="text-sm text-gray-600">
-          Mehr Infos: <a href="/widerruf" className="text-blue-600 hover:underline">Widerrufsbelehrung</a>
+          Mehr Infos: <Link href="/widerruf" className="text-blue-600 hover:underline">Widerrufsbelehrung</Link>
         </p>
       </div>
     )
@@ -381,7 +382,7 @@ export default function FAQ() {
           Für Widerrufe, Rücksendungen und Reklamationen ist der Verkäufer verantwortlich.
         </p>
         <p className="text-sm text-gray-600">
-          Mehr Infos: <a href="/widerruf" className="text-blue-600 hover:underline">Widerrufsbelehrung</a>
+          Mehr Infos: <Link href="/widerruf" className="text-blue-600 hover:underline">Widerrufsbelehrung</Link>
         </p>
       </div>
     )
@@ -399,7 +400,7 @@ export default function FAQ() {
           (für Versand/Abholung). Der Verkäufer ist eigenständiger Datenverantwortlicher.
         </p>
         <p className="text-sm text-gray-600">
-          Mehr Infos: <a href="/datenschutz" className="text-blue-600 hover:underline">Datenschutzerklärung</a>
+          Mehr Infos: <Link href="/datenschutz" className="text-blue-600 hover:underline">Datenschutzerklärung</Link>
         </p>
       </div>
     )
