@@ -776,25 +776,7 @@ export const appRouter = router({
     // Security logs for AdminSecurity
     getSecurityLogs: adminProcedure
       .query(async () => {
-        // Mock data for now - you can implement real security logs later
-        return [
-          {
-            id: 1,
-            type: "ip_block" as const,
-            ipAddress: "192.168.1.100",
-            details: "Suspicious login attempts detected",
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-            adminId: 1,
-            adminName: "Admin User",
-          },
-          {
-            id: 2,
-            type: "failed_login" as const,
-            ipAddress: "10.0.0.50",
-            details: "Multiple failed login attempts",
-            timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
-          },
-        ];
+        return await db.getSecurityLogs(50);
       }),
 
     // System settings for AdminSettings
