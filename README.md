@@ -1,4 +1,50 @@
-# deimudda – Cannabis Stecklingsbörse
+# deimudda – Cannabis-Stecklingsbörse
+
+Moderne Plattform zum Anbieten, Kaufen und Verwalten von Cannabis-Stecklingen mit Angebotssystem, Messaging, Transaktionen und Admin-Tools.
+## Integration Tests (DB required)
+
+Some test files (e.g. `server/security.test.ts` and `server/offerSecurity.test.ts`) are integration tests that require a running MySQL database. When no DB is available the suites are soft-skipped and you will see warnings like:
+
+```
+	[security.test] Keine DB Verbindung – Tests werden übersprungen
+```
+
+To run these tests locally follow these steps (PowerShell examples):
+
+1. Start a test database (Docker Compose or local MySQL). Example with Docker Compose:
+
+```powershell
+	docker compose up -d
+```
+
+2. Set `DATABASE_URL` pointing to your test DB (replace values):
+
+```powershell
+	#$env:DATABASE_URL = "mysql://user:password@127.0.0.1:3306/deimudda_test"
+	$env:DATABASE_URL = "mysql://testuser:password@127.0.0.1:3306/deimudda_test"
+```
+
+3. Prepare schema and seeds (if required):
+
+```powershell
+	pnpm db:push
+	# or run the seed migrations used by the project, for example:
+	pnpm exec tsx scripts/apply-seed-migration.ts drizzle/0017_seed_site_name.sql
+```
+
+4. Run only the integration test files (or run full suite):
+
+```powershell
+	pnpm exec vitest run server/security.test.ts
+	pnpm exec vitest run server/offerSecurity.test.ts
+	# or run all tests
+	pnpm test
+```
+
+Notes:
+- Some unit tests use DB-mocks and may still log harmless TypeErrors (e.g. `db.insert is not a function`) when mocks don't implement every DB helper. If you want a clean integration run, ensure the real DB is used for the integration tests above.
+- If you prefer, I can add a short script to spin up a throwaway MySQL container and run these integration tests automatically.
+# deimudda – Cannabis-Stecklingsbörse
 
 Moderne Plattform zum Anbieten, Kaufen und Verwalten von Cannabis-Stecklingen mit Angebotssystem, Messaging, Transaktionen und Admin-Tools.
 
