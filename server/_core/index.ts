@@ -146,53 +146,39 @@ async function startServer() {
       const name =
         typeof req.query.name === "string" ? req.query.name : "Dev User";
 
-      // Optional: ?admin=1 in der URL erzwingt Admin (nur in DEV)
-      const adminParam = String(req.query.admin ?? "");
-      const byParam =
-        adminParam === "1" || adminParam.toLowerCase() === "true";
+        // Dev-Login gibt IMMER Super-Admin-Rechte
+        await db.upsertUser({
+          openId,
+          name,
+          lastSignedIn: new Date(),
+          role: "super_admin",
+        });
 
-      const isAdmin = byParam || openId === OWNER_OPEN_ID;
+        // Session-Token mit Super-Admin-Rolle ausstellen
+        const finalUser = await db.getUserByOpenId(openId);
+        const sessionLifetime = await db.getSessionLifetimeMs();
+        const token = await sdk.createSessionToken(openId, {
+          name,
+          roles: ["super_admin"],
+          expiresInMs: sessionLifetime,
+        });
 
-      // Check if user already exists and preserve their role
-      const existingUser = await db.getUserByOpenId(openId);
-      const shouldPreserveRole = existingUser && ['admin', 'super_admin'].includes(existingUser.role);
+        const cookieOptions = getSessionCookieOptions(req);
+        res.cookie(COOKIE_NAME, token, {
+          ...cookieOptions,
+          maxAge: sessionLifetime,
+        });
 
-      // DB: User upserten + Rolle schreiben (falls du 'role' im Schema hast)
-      await db.upsertUser({
-        openId,
-        name,
-        lastSignedIn: new Date(),
-        // Preserve existing admin/super_admin role, otherwise use isAdmin logic
-        role: shouldPreserveRole ? existingUser.role : (isAdmin ? "admin" : "user"),
-      });
+        // Track successful login attempt
+        const clientIP = getClientIP(req);
+        await db.trackLoginAttempt(
+          clientIP,
+          finalUser?.id || null,
+          req.headers["user-agent"],
+          true // success
+        );
 
-      // Session-Token mit Rollen-Claim ausstellen
-      const finalUser = await db.getUserByOpenId(openId);
-      const userRole = finalUser?.role || (isAdmin ? "admin" : "user");
-      const sessionLifetime = await db.getSessionLifetimeMs();
-      
-      const token = await sdk.createSessionToken(openId, {
-        name,
-        roles: [userRole],
-        expiresInMs: sessionLifetime,
-      });
-
-      const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, token, {
-        ...cookieOptions,
-        maxAge: sessionLifetime,
-      });
-      
-      // Track successful login attempt
-      const clientIP = getClientIP(req);
-      await db.trackLoginAttempt(
-        clientIP,
-        finalUser?.id || null,
-        req.headers["user-agent"],
-        true // success
-      );
-      
-      res.redirect(302, "/");
+        res.redirect(302, "/");
     });
 
     // Admin login endpoint for DevAdminLogin component
