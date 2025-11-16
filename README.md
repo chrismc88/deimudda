@@ -64,12 +64,27 @@ pnpm db:push    # Migrations ausführen
 
 ## 🔐 Wichtiges
 
-- **Dev-Login:** Aktiv in Development, deaktiviert in Production
-- **System Settings:** Key/Value Store für Fees, Limits etc. (`getSystemSetting(key)`)
-- **Migrations:** Nur neue Dateien hinzufügen, niemals alte ändern
-- **Adminer:** `http://localhost:8080` (Server: `db`, User/PW: `root`)
 
----
+### Dev-Login toggeln
+
+- PowerShell (Windows):
+```powershell
+$env:DEV_LOGIN_ENABLED = "false"; pnpm dev   # deaktivieren
+$env:DEV_LOGIN_ENABLED = "true"; pnpm dev    # aktivieren
+```
+
+- Bash/Zsh (macOS/Linux):
+```bash
+DEV_LOGIN_ENABLED=false pnpm dev   # deaktivieren
+DEV_LOGIN_ENABLED=true pnpm dev    # aktivieren
+```
+
+- Docker Compose: in `docker-compose.yml` oder `.env`
+```yaml
+environment:
+	- DEV_LOGIN_ENABLED=false
+```
+
 
 ## 📚 Weitere Docs
 
