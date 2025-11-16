@@ -44,9 +44,6 @@ const systemSettingsSchema = z.object({
   userRegistrationEnabled: z.boolean(),
   listingApprovalRequired: z.boolean(),
   maxListingImages: z.number().min(1).max(20),
-  maxListingPrice: z.number().min(0),
-  transactionFeePercent: z.number().min(0).max(100),
-  minSellerRating: z.number().min(0).max(5),
   sessionTimeoutMinutes: z.number().min(15).max(480),
 });
 
@@ -78,9 +75,6 @@ export default function AdminSettings() {
       userRegistrationEnabled: true,
       listingApprovalRequired: false,
       maxListingImages: 10,
-      maxListingPrice: 10000,
-      transactionFeePercent: 5,
-      minSellerRating: 0,
       sessionTimeoutMinutes: 120,
     },
   });
@@ -129,7 +123,6 @@ export default function AdminSettings() {
   const tabs = [
     { id: "general", label: "General", icon: Settings },
     { id: "security", label: "Security", icon: Shield },
-    { id: "commerce", label: "Commerce", icon: DollarSign },
     { id: "limits", label: "Limits & Timeouts", icon: Clock },
     { id: "users", label: "User Settings", icon: Users },
   ];
@@ -329,88 +322,7 @@ export default function AdminSettings() {
                   </Card>
                 )}
 
-                {/* Commerce Settings */}
-                {activeTab === "commerce" && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Commerce & Transaction Settings</CardTitle>
-                      <CardDescription>
-                        Configure fees, payments, and commerce behavior
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="transactionFeePercent"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Platform Transaction Fee (%)</FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                type="number"
-                                min="0"
-                                max="100"
-                                step="0.1"
-                                onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Percentage fee charged on each transaction
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="maxListingPrice"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Maximum Listing Price (€)</FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                type="number"
-                                min="0"
-                                onChange={(e) => field.onChange(parseInt(e.target.value))}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Maximum allowed price for listings
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="minSellerRating"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Minimum Seller Rating</FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                type="number"
-                                min="0"
-                                max="5"
-                                step="0.1"
-                                onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Minimum rating required to sell on the platform
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </CardContent>
-                  </Card>
-                )}
+                {/* Commerce Settings removed - handled by dedicated AdminFees page */}
 
                 {/* Limits & Timeouts */}
                 {activeTab === "limits" && (

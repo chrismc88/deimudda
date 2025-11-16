@@ -789,9 +789,6 @@ export const appRouter = router({
         userRegistrationEnabled: z.boolean(),
         listingApprovalRequired: z.boolean(),
         maxListingImages: z.number().min(1).max(20),
-        maxListingPrice: z.number().min(0),
-        transactionFeePercent: z.number().min(0).max(100),
-        minSellerRating: z.number().min(0).max(5),
         sessionTimeoutMinutes: z.number().min(15).max(480),
       }))
       .mutation(async ({ input, ctx }) => {
