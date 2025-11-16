@@ -348,6 +348,20 @@ export async function acceptOffer(id: number) {
   }
   await _updateOfferFn(id, { status: 'accepted', respondedAt: new Date() });
   const amount = parseFloat(String(offer.offerAmount));
+  // Enforce minimum transaction amount from system settings
+  try {
+    const minTxRaw = await _getSystemSettingFn('min_transaction_amount');
+    const minTx = minTxRaw ? parseFloat(minTxRaw) : 5.00;
+    if (!isNaN(minTx) && amount < minTx) {
+      throw new Error(`Transaktion unter Mindestbetrag ${minTx.toFixed(2)}€ nicht erlaubt`);
+    }
+  } catch (e) {
+    if (e instanceof Error && e.message.startsWith('Transaktion unter Mindestbetrag')) {
+      // Re-throw validation error
+      throw e;
+    }
+    console.warn('[acceptOffer] konnte min_transaction_amount Setting nicht laden, fallback genutzt');
+  }
   const platformFeeFixedRaw = await _getSystemSettingFn('platform_fee_fixed');
   const paypalPercRaw = await _getSystemSettingFn('paypal_fee_percentage');
   const paypalFixedRaw = await _getSystemSettingFn('paypal_fee_fixed');
@@ -355,7 +369,7 @@ export async function acceptOffer(id: number) {
   const paypalPerc = paypalPercRaw ? parseFloat(paypalPercRaw) / 100 : 0.0249;
   const paypalFixed = paypalFixedRaw ? parseFloat(paypalFixedRaw) : 0.49;
   const paypalFee = amount * paypalPerc + paypalFixed;
-  const platformFee = platformFeeFixed;
+  const platformFee = platformFeeFixed; // Nur fixe Gebühr, keine Prozente
   const sellerAmount = amount;
   await _createTransactionFn({
     listingId: offer.listingId,
@@ -576,6 +590,25 @@ export async function createListing(sellerId: number, listing: {
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+
+  // Validate max_listing_price
+  const maxPriceRaw = await _getSystemSettingFn('max_listing_price');
+  const maxPrice = maxPriceRaw ? parseFloat(maxPriceRaw) : 10000;
+  const priceToCheck = listing.fixedPrice ? parseFloat(String(listing.fixedPrice)) : (listing.offerMinPrice ? parseFloat(String(listing.offerMinPrice)) : 0);
+  if (priceToCheck > maxPrice) {
+    throw new Error(`Preis ${priceToCheck.toFixed(2)}€ überschreitet Maximum ${maxPrice.toFixed(2)}€`);
+  }
+
+  // Validate min_seller_rating
+  const minRatingRaw = await _getSystemSettingFn('min_seller_rating');
+  const minRating = minRatingRaw ? parseFloat(minRatingRaw) : 0;
+  if (minRating > 0) {
+    const sellerProfile = await getSellerProfile(sellerId);
+    const rating = sellerProfile?.rating ? parseFloat(String(sellerProfile.rating)) : 0;
+    if (rating < minRating) {
+      throw new Error(`Mindestbewertung ${minRating} erforderlich (aktuell: ${rating.toFixed(1)})`);
+    }
+  }
 
   const acceptsOffers = listing.acceptsOffers ?? listing.priceType === "offer";
 

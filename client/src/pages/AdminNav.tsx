@@ -8,6 +8,7 @@ import {
   Settings, 
   BarChart3, 
   Shield,
+  DollarSign,
   ChevronRight
 } from "lucide-react";
 import { Badge } from "../components/ui/badge";
@@ -52,6 +53,13 @@ export default function AdminNav() {
       label: "Analytics",
       icon: BarChart3,
       description: "Business Intelligence"
+    },
+    {
+      path: "/admin/fees",
+      label: "Fees",
+      icon: DollarSign,
+      description: "Fee Management",
+      superAdminOnly: true
     },
     {
       path: "/admin/settings",

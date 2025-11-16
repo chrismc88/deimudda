@@ -19,6 +19,21 @@ export default function Home() {
   const activeListings = trpc.listing.getActive.useQuery({ limit: 6 });
   const [searchQuery, setSearchQuery] = useState("");
   const [, setLocation] = useLocation();
+  
+  // Dynamische Gebühren aus System Settings laden
+  const { data: platformFeeStr } = trpc.admin.getSystemSetting.useQuery('platform_fee_fixed', { staleTime: 300000 });
+  const { data: paypalPercStr } = trpc.admin.getSystemSetting.useQuery('paypal_fee_percentage', { staleTime: 300000 });
+  const { data: paypalFixedStr } = trpc.admin.getSystemSetting.useQuery('paypal_fee_fixed', { staleTime: 300000 });
+  
+  const platformFee = parseFloat(platformFeeStr || '0.42');
+  const paypalPerc = parseFloat(paypalPercStr || '2.49') / 100;
+  const paypalFixed = parseFloat(paypalFixedStr || '0.49');
+  
+  // Beispielrechnung: €10 Artikel
+  const exampleAmount = 10;
+  const paypalFeeExample = exampleAmount * paypalPerc + paypalFixed;
+  const cashTotal = platformFee;
+  const onlineTotal = platformFee + paypalFeeExample;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -164,20 +179,20 @@ export default function Home() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Plattformgebühr:</span>
-                      <span className="font-semibold text-green-600">€0,42</span>
+                      <span className="font-semibold text-green-600">€{platformFee.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">PayPal-Gebühren:</span>
-                      <span className="font-semibold text-blue-600">€0,89</span>
+                      <span className="font-semibold text-blue-600">€{paypalFeeExample.toFixed(2)}</span>
                     </div>
                     <div className="border-t pt-2 mt-2">
                       <div className="flex justify-between items-center">
                         <span className="text-gray-700 font-medium">Bei Barzahlung:</span>
-                        <span className="font-bold text-gray-800">€0,42</span>
+                        <span className="font-bold text-gray-800">€{cashTotal.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between items-center mt-1">
                         <span className="text-gray-700 font-medium">Bei Online-Zahlung:</span>
-                        <span className="font-bold text-gray-800">€1,31</span>
+                        <span className="font-bold text-gray-800">€{onlineTotal.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>

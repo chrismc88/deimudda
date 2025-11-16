@@ -1,13 +1,17 @@
-// Apply seed migration 0013_seed_critical_settings.sql
+// Apply seed migration (pass file as arg)
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { readFileSync } from "fs";
 import { join } from "path";
+import { config } from "dotenv";
 
-async function applySeedMigration() {
+// Load .env
+config();
+
+async function applySeedMigration(migrationFile: string) {
   const connection = await mysql.createConnection(process.env.DATABASE_URL!);
   
-  const sqlFile = join(process.cwd(), 'drizzle', '0013_seed_critical_settings.sql');
+  const sqlFile = join(process.cwd(), migrationFile);
   const sql = readFileSync(sqlFile, 'utf-8');
   
   // Split by "INSERT INTO" to get individual statements
@@ -33,7 +37,13 @@ async function applySeedMigration() {
   process.exit(0);
 }
 
-applySeedMigration().catch(error => {
+const migrationArg = process.argv[2];
+if (!migrationArg) {
+  console.error('Usage: node scripts/apply-seed-migration.ts <migration-file>');
+  process.exit(1);
+}
+
+applySeedMigration(migrationArg).catch(error => {
   console.error('Migration failed:', error);
   process.exit(1);
 });

@@ -32,6 +32,7 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminTransactions from "./pages/AdminTransactions";
 import AdminListings from "./pages/AdminListings";
 import AdminSettings from "./pages/AdminSettings";
+import AdminFees from "./pages/AdminFees";
 import AdminStats from "./pages/AdminStats";
 import AdminSecurity from "./pages/AdminSecurity";
 import AdminTest from "./pages/AdminTest";
@@ -89,6 +90,7 @@ function Router() {
       <Route path="/admin/transactions" component={AdminTransactions} />
       <Route path="/admin/listings" component={AdminListings} />
       <Route path="/admin/settings" component={AdminSettings} />
+      <Route path="/admin/fees" component={AdminFees} />
       <Route path="/admin/stats" component={AdminStats} />
       <Route path="/admin/security" component={AdminSecurity} />
       <Route path="/admin/manage" component={AdminManage} />

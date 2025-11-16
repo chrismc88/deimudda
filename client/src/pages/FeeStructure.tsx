@@ -13,7 +13,7 @@ export default function FeeStructure() {
   const { data: paypalFeeFixedStr } = trpc.admin.getSystemSetting.useQuery('paypal_fee_fixed', { staleTime: 300000 });
   
   const platformFee = parseFloat(platformFeeStr || "0.42");
-  const paypalPercentage = parseFloat(paypalFeePercentageStr || "0.0249");
+  const paypalPercentage = parseFloat(paypalFeePercentageStr || "2.49") / 100; // Convert to decimal
   const paypalFixed = parseFloat(paypalFeeFixedStr || "0.49");
 
   const paypalFee = method === "online" ? price * paypalPercentage + paypalFixed : 0;
