@@ -1544,20 +1544,210 @@ export async function getSystemSettings() {
   }
 }
 
+type SystemSettingMeta = {
+  category: string;
+  description: string | null;
+};
+
+const SYSTEM_SETTING_DEFAULTS: Record<string, SystemSettingMeta> = {
+  email_notifications_enabled: {
+    category: "notifications",
+    description: "Global toggle for email notifications",
+  },
+  email_verification_required: {
+    category: "verification",
+    description: "Require email verification before listings go live",
+  },
+  enable_ratings: {
+    category: "features",
+    description: "Enable the rating and review system",
+  },
+  image_max_size_mb: {
+    category: "limits",
+    description: "Maximum image size in megabytes",
+  },
+  ip_block_duration_hours: {
+    category: "security",
+    description: "Automatic unblock time for blocked IPs in hours",
+  },
+  listing_auto_expire_days: {
+    category: "listings",
+    description: "Auto expire listings after this many inactive days",
+  },
+  login_lockout_duration_minutes: {
+    category: "security",
+    description: "Lockout duration after too many failed logins",
+  },
+  maintenance_mode: {
+    category: "general",
+    description: "Toggle to take the platform into maintenance mode",
+  },
+  max_active_listings_per_user: {
+    category: "limits",
+    description: "Maximum active listings a user can have",
+  },
+  max_image_size_mb: {
+    category: "limits",
+    description: "Maximum image upload size in megabytes",
+  },
+  max_images_per_listing: {
+    category: "limits",
+    description: "Maximum number of images per listing",
+  },
+  max_listing_images: {
+    category: "limits",
+    description: "Maximum number of images per listing",
+  },
+  max_listing_price: {
+    category: "commerce",
+    description: "Maximum listing price in EUR",
+  },
+  max_login_attempts: {
+    category: "security",
+    description: "Maximum failed login attempts before blocking",
+  },
+  max_login_attempts_per_ip: {
+    category: "security",
+    description: "Maximum login attempts per IP in the rate limit window",
+  },
+  max_login_attempts_per_user: {
+    category: "security",
+    description: "Maximum login attempts per user in the rate limit window",
+  },
+  max_message_length: {
+    category: "limits",
+    description: "Maximum message length in characters",
+  },
+  max_offers_per_listing: {
+    category: "limits",
+    description: "Maximum active offers allowed per listing",
+  },
+  max_offers_per_user: {
+    category: "limits",
+    description: "Maximum active offers a user can have as buyer",
+  },
+  min_age_requirement: {
+    category: "general",
+    description: "Minimum age required to use the platform",
+  },
+  min_offer_amount: {
+    category: "limits",
+    description: "Minimum offer amount in EUR",
+  },
+  min_listing_price: {
+    category: "limits",
+    description: "Minimum listing price in EUR",
+  },
+  min_seller_rating: {
+    category: "commerce",
+    description: "Minimum seller rating required to sell",
+  },
+  min_transaction_amount: {
+    category: "payments",
+    description: "Minimum transaction amount in EUR",
+  },
+  min_transactions_for_rating: {
+    category: "features",
+    description: "Transactions required before a user can rate",
+  },
+  notification_retention_days: {
+    category: "notifications",
+    description: "Days to retain read notifications",
+  },
+  paypal_fee_fixed: {
+    category: "fees",
+    description: "Fixed PayPal fee per transaction in EUR",
+  },
+  paypal_fee_percentage: {
+    category: "fees",
+    description: "PayPal fee percentage",
+  },
+  platform_currency: {
+    category: "payments",
+    description: "Platform currency (EUR, USD, etc.)",
+  },
+  platform_fee_fixed: {
+    category: "fees",
+    description: "Fixed platform fee per transaction in EUR",
+  },
+  refund_window_days: {
+    category: "payments",
+    description: "Buyer refund window in days",
+  },
+  registration_enabled: {
+    category: "general",
+    description: "Allow new user registrations",
+  },
+  require_listing_approval: {
+    category: "verification",
+    description: "Require admin approval before listings go live",
+  },
+  require_seller_profile_for_offers: {
+    category: "verification",
+    description: "Require seller profile completion to accept offers",
+  },
+  review_window_days: {
+    category: "general",
+    description: "Days after a transaction to leave a review",
+  },
+  seller_payout_minimum: {
+    category: "payments",
+    description: "Minimum seller balance required for payout",
+  },
+  session_lifetime_days: {
+    category: "security",
+    description: "Session cookie lifetime in days",
+  },
+  site_name: {
+    category: "branding",
+    description: "Site name used in notifications and emails",
+  },
+  suspicious_activity_threshold: {
+    category: "security",
+    description: "Actions per minute that trigger a security review",
+  },
+  suspension_max_days: {
+    category: "security",
+    description: "Maximum suspension duration in days",
+  },
+  warning_threshold: {
+    category: "security",
+    description: "Warnings required before automatic suspension",
+  },
+  message_rate_limit_per_hour: {
+    category: "limits",
+    description: "Maximum messages a user can send per hour",
+  },
+};
+
+const getSystemSettingDefaults = (key: string): SystemSettingMeta => {
+  return SYSTEM_SETTING_DEFAULTS[key] ?? { category: "general", description: null };
+};
+
 export async function updateSystemSetting(key: string, value: string, adminId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   try {
-    await db.update(systemSettings)
-      .set({ 
+    const metadata = getSystemSettingDefaults(key);
+
+    await db.insert(systemSettings)
+      .values({
+        key,
         value,
-        updatedAt: new Date(),
+        category: metadata.category,
+        description: metadata.description,
         updatedBy: adminId,
       })
-      .where(eq(systemSettings.key, key));
+      .onDuplicateKeyUpdate({
+        set: {
+          value,
+          updatedAt: new Date(),
+          updatedBy: adminId,
+        },
+      });
 
-    console.log("[Database] System setting updated:", key, value);
+    console.log("[Database] System setting upserted:", key, value);
   } catch (error) {
     console.error("[Database] Failed to update system setting:", error);
     throw error;
