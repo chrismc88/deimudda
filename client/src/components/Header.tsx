@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useSiteName } from "@/_core/hooks/useSiteName";
 import { Button } from "@/components/ui/button";
 import { APP_TITLE, getLoginUrl } from "@/const";
 import { Link } from "wouter";
@@ -12,14 +13,15 @@ import { MessageIcon } from "@/components/MessageIcon";
  */
 export function Header() {
   const { user, isAuthenticated, logout } = useAuth();
+  const { siteName } = useSiteName();
 
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
         <Link href="/">
           <div className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition">
-            <img src="/seedling-logo.png" alt="deimudda Logo" className="h-10 w-10" />
-            <h1 className="text-2xl font-bold text-green-700">{APP_TITLE}</h1>
+            <img src="/seedling-logo.png" alt={siteName + " Logo"} className="h-10 w-10" />
+            <h1 className="text-2xl font-bold text-green-700">{siteName}</h1>
           </div>
         </Link>
         <div className="flex items-center gap-4">

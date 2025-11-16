@@ -1,3 +1,4 @@
+import { useSiteName } from "@/_core/hooks/useSiteName";
 import { Link } from "wouter";
 
 /**
@@ -107,7 +108,11 @@ export function Footer() {
         </div>
 
         <div className="border-t border-gray-700 mt-8 pt-8 text-center text-sm">
-          <p>&copy; 2025 deimudda – Cannabis-Stecklingsbörse. Alle Rechte vorbehalten.</p>
+          {/* ...existing code... */}
+          {(() => {
+            const { siteName } = useSiteName();
+            return <p>&copy; 2025 {siteName} – Cannabis-Stecklingsbörse. Alle Rechte vorbehalten.</p>;
+          })()}
           <p className="mt-2 text-gray-400">
             Nur für Personen ab 18 Jahren. Verkauf und Konsum von Cannabis gemäß geltender Gesetzgebung.
           </p>

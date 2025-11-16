@@ -1,6 +1,9 @@
+
 import BackButton from "@/components/BackButton";
+import { useSiteName } from "@/_core/hooks/useSiteName";
 
 export default function About() {
+  const { siteName } = useSiteName();
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 py-12">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -41,12 +44,12 @@ export default function About() {
 
             {/* Die Geschichte */}
             <section>
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">Die Geschichte von deimudda</h2>
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Die Geschichte von {siteName}</h2>
               
               <div className="prose prose-lg max-w-none text-gray-700 space-y-4">
                 <p>
-                  <strong>deimudda</strong> ist mehr als nur eine Plattform – es ist das Ergebnis jahrelanger 
-                  Leidenschaft, Forschung und Hingabe zum biologischen Cannabis-Anbau. Hinter deimudda steht 
+                  <strong>{siteName}</strong> ist mehr als nur eine Plattform – es ist das Ergebnis jahrelanger 
+                  Leidenschaft, Forschung und Hingabe zum biologischen Cannabis-Anbau. Hinter {siteName} steht 
                   <strong> Vaperge - Eau de Terpènes</strong>, gegründet von Chris Rohleder, in enger Kooperation 
                   mit <strong>Kalidad - Grow- & Headshop</strong> in Malsch.
                 </p>
@@ -169,7 +172,7 @@ export default function About() {
               
               <div className="space-y-4 text-gray-700">
                 <p>
-                  Mit <strong>deimudda</strong> wollen wir nicht nur Stecklinge und Samen vermitteln – wir wollen 
+                  Mit <strong>{siteName}</strong> wollen wir nicht nur Stecklinge und Samen vermitteln – wir wollen 
                   eine <strong>Community</strong> aufbauen, in der Wissen geteilt, Erfahrungen ausgetauscht und 
                   gemeinsam gelernt wird.
                 </p>
@@ -231,7 +234,7 @@ export default function About() {
                     <p className="text-gray-600">
                       Gegründet von Chris Rohleder. Spezialisiert auf Terpenen-Forschung, biologischen Anbau 
                       und die Entwicklung von Dünge-Schemata. Vaperge ist die treibende Kraft hinter dem 
-                      Cannabis-Folianten und dem deimudda-Projekt.
+                      Cannabis-Folianten und dem {siteName}-Projekt.
                     </p>
                   </div>
                 </div>
@@ -261,11 +264,11 @@ export default function About() {
 
             {/* Warum deimudda? */}
             <section>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">❓ Warum "deimudda"?</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">❓ Warum "{siteName}"?</h2>
               
               <div className="space-y-3 text-gray-700">
                 <p>
-                  Der Name <strong>deimudda</strong> ist eine liebevolle Anspielung auf die <strong>Mutterpflanzen</strong> 
+                  Der Name <strong>{siteName}</strong> ist eine liebevolle Anspielung auf die <strong>Mutterpflanzen</strong> 
                   (engl. "mother plants"), von denen Stecklinge geschnitten werden. Im Pfälzischen Dialekt wird daraus 
                   "dei Mudda" – deine Mutter.
                 </p>
