@@ -1,301 +1,446 @@
-import { useState } from 'react';
-import { trpc } from '@/lib/trpc';
-import DashboardLayout from '@/components/DashboardLayout';
-import BackButton from '@/components/BackButton';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Separator } from '@/components/ui/separator';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { trpc } from "@/lib/trpc";
+import DashboardLayout from "@/components/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { CheckCircle, XCircle, MessageSquare, Clock, Euro } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { de } from "date-fns/locale";
 
-// Basic shape copied from server schema for typing hints (runtime types come from tRPC)
-interface Offer {
-  id: number;
-  listingId: number;
-  buyerId: number;
-  sellerId: number;
-  offerAmount: string; // stored as string decimal
-  message?: string | null;
-  status: 'pending' | 'accepted' | 'rejected' | 'countered' | 'expired';
-  counterAmount?: string | null;
-  counterMessage?: string | null;
-  expiresAt?: string | null;
-  respondedAt?: string | null;
-  createdAt?: string | null;
-}
+type OfferStatus = "pending" | "accepted" | "rejected" | "countered" | "expired";
 
 export default function OfferManagement() {
-  // Pagination & Filter state
+  const utils = trpc.useUtils();
+  
+  // State for incoming offers (als Verkäufer)
   const [incomingPage, setIncomingPage] = useState(1);
-  const [minePage, setMinePage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [statusFilterIncoming, setStatusFilterIncoming] = useState<string>('');
-  const [statusFilterMine, setStatusFilterMine] = useState<string>('');
+  const [incomingStatus, setIncomingStatus] = useState<OfferStatus | undefined>(undefined);
+  
+  // State for outgoing offers (als Käufer)
+  const [outgoingPage, setOutgoingPage] = useState(1);
+  const [outgoingStatus, setOutgoingStatus] = useState<OfferStatus | undefined>(undefined);
 
-  const incoming = trpc.offer.getIncoming.useQuery({ page: incomingPage, pageSize, status: statusFilterIncoming || undefined }, { keepPreviousData: true });
-  const mine = trpc.offer.getMine.useQuery({ page: minePage, pageSize, status: statusFilterMine || undefined }, { keepPreviousData: true });
-  const pending = trpc.offer.getPending.useQuery(undefined, { staleTime: 30_000 });
-
-  const createMutation = trpc.offer.create.useMutation({
-    onSuccess: () => {
-      toast.success('Angebot erstellt');
-      mine.refetch();
-      setCreateOpen(false);
-      setCreateForm({ listingId: '', amount: '', message: '' });
-    },
-    onError: (e) => toast.error(e.message),
+  // Dialog states
+  const [counterDialog, setCounterDialog] = useState<{ open: boolean; offerId: number | null; currentAmount: number }>({
+    open: false,
+    offerId: null,
+    currentAmount: 0,
   });
+  const [counterAmount, setCounterAmount] = useState("");
+  const [counterMessage, setCounterMessage] = useState("");
 
+  // Queries
+  const incomingQuery = trpc.offer.getIncoming.useQuery(
+    { page: incomingPage, pageSize: 10, status: incomingStatus },
+    { refetchInterval: 30000 } // Auto-refresh alle 30s
+  );
+
+  const outgoingQuery = trpc.offer.getMine.useQuery(
+    { page: outgoingPage, pageSize: 10, status: outgoingStatus },
+    { refetchInterval: 30000 }
+  );
+
+  // Mutations
   const acceptMutation = trpc.offer.accept.useMutation({
     onSuccess: () => {
-      toast.success('Angebot akzeptiert');
-      incoming.refetch();
-      pending.refetch();
+      utils.offer.getIncoming.invalidate();
+      utils.offer.getPending.invalidate();
     },
-    onError: (e) => toast.error(e.message),
   });
 
   const rejectMutation = trpc.offer.reject.useMutation({
     onSuccess: () => {
-      toast.success('Angebot abgelehnt');
-      incoming.refetch();
-      pending.refetch();
+      utils.offer.getIncoming.invalidate();
+      utils.offer.getPending.invalidate();
     },
-    onError: (e) => toast.error(e.message),
   });
 
   const counterMutation = trpc.offer.counter.useMutation({
     onSuccess: () => {
-      toast.success('Gegenangebot gesendet');
-      incoming.refetch();
-      pending.refetch();
-      setCounterOpen(false);
-      setCounterForm({ offerId: null, amount: '', message: '' });
+      utils.offer.getIncoming.invalidate();
+      utils.offer.getPending.invalidate();
+      setCounterDialog({ open: false, offerId: null, currentAmount: 0 });
+      setCounterAmount("");
+      setCounterMessage("");
     },
-    onError: (e) => toast.error(e.message),
   });
 
-  const respondCounterMutation = trpc.offer.respondToCounter.useMutation({
+  const respondToCounterMutation = trpc.offer.respondToCounter.useMutation({
     onSuccess: () => {
-      toast.success('Reaktion gespeichert');
-      mine.refetch();
-      pending.refetch();
+      utils.offer.getMine.invalidate();
+      utils.offer.getPending.invalidate();
     },
-    onError: (e) => toast.error(e.message),
   });
 
-  const [tab, setTab] = useState<'incoming' | 'mine' | 'actions' | 'create'>('incoming');
-  const [createOpen, setCreateOpen] = useState(false);
-  const [counterOpen, setCounterOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({ listingId: '', amount: '', message: '' });
-  const [counterForm, setCounterForm] = useState<{ offerId: number | null; amount: string; message: string }>({ offerId: null, amount: '', message: '' });
+  const handleAccept = (offerId: number) => {
+    if (confirm("Angebot wirklich annehmen?")) {
+      acceptMutation.mutate({ offerId });
+    }
+  };
 
-  const handleCreate = () => {
-    const listingId = parseInt(createForm.listingId, 10);
-    const amount = parseFloat(createForm.amount);
-    if (!listingId || !amount) {
-      toast.error('Listing-ID und Betrag erforderlich');
+  const handleReject = (offerId: number) => {
+    if (confirm("Angebot wirklich ablehnen?")) {
+      rejectMutation.mutate({ offerId });
+    }
+  };
+
+  const handleOpenCounterDialog = (offerId: number, currentAmount: number) => {
+    setCounterDialog({ open: true, offerId, currentAmount });
+    setCounterAmount(String(currentAmount + 5)); // Vorschlag: +5€
+  };
+
+  const handleSubmitCounter = () => {
+    if (!counterDialog.offerId) return;
+    const amount = parseFloat(counterAmount);
+    if (isNaN(amount) || amount <= counterDialog.currentAmount) {
+      alert("Gegenangebot muss höher sein als das ursprüngliche Angebot");
       return;
     }
-    createMutation.mutate({ listingId, offerAmount: amount, message: createForm.message || undefined });
+    counterMutation.mutate({
+      offerId: counterDialog.offerId,
+      counterAmount: amount,
+      counterMessage: counterMessage || undefined,
+    });
   };
 
-  const handleCounter = () => {
-    if (!counterForm.offerId) return;
-    const amount = parseFloat(counterForm.amount);
-    if (!amount) {
-      toast.error('Gegen-Betrag erforderlich');
-      return;
+  const handleRespondToCounter = (offerId: number, action: "accept" | "reject") => {
+    if (action === "accept" && !confirm("Gegenangebot annehmen?")) return;
+    if (action === "reject" && !confirm("Gegenangebot ablehnen?")) return;
+    respondToCounterMutation.mutate({ offerId, action });
+  };
+
+  const getStatusBadge = (status: OfferStatus) => {
+    switch (status) {
+      case "pending":
+        return <Badge variant="outline" className="bg-yellow-50"><Clock className="w-3 h-3 mr-1" />Ausstehend</Badge>;
+      case "accepted":
+        return <Badge variant="outline" className="bg-green-50"><CheckCircle className="w-3 h-3 mr-1" />Angenommen</Badge>;
+      case "rejected":
+        return <Badge variant="outline" className="bg-red-50"><XCircle className="w-3 h-3 mr-1" />Abgelehnt</Badge>;
+      case "countered":
+        return <Badge variant="outline" className="bg-blue-50"><MessageSquare className="w-3 h-3 mr-1" />Gegenangebot</Badge>;
+      case "expired":
+        return <Badge variant="outline" className="bg-gray-50">Abgelaufen</Badge>;
     }
-    counterMutation.mutate({ offerId: counterForm.offerId, counterAmount: amount, counterMessage: counterForm.message || undefined });
   };
 
-  const format = (value?: string | null) => {
-    if (!value) return '-';
-    return value;
-  };
+  const renderOfferCard = (offer: any, isIncoming: boolean) => (
+    <Card key={offer.id} className="mb-4">
+      <CardHeader>
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <CardTitle className="text-lg">{offer.listingTitle}</CardTitle>
+            <CardDescription>
+              {isIncoming ? `Von: ${offer.buyerName || "Unbekannt"}` : `Verkäufer: ${offer.sellerShopName || "Unbekannt"}`}
+              {" • "}
+              {formatDistanceToNow(new Date(offer.createdAt), { addSuffix: true, locale: de })}
+            </CardDescription>
+          </div>
+          {getStatusBadge(offer.status)}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Euro className="w-4 h-4 text-muted-foreground" />
+          <span className="font-semibold text-lg">{parseFloat(offer.offerAmount).toFixed(2)} €</span>
+          {offer.counterAmount && (
+            <span className="text-sm text-muted-foreground">
+              (Gegenangebot: {parseFloat(offer.counterAmount).toFixed(2)} €)
+            </span>
+          )}
+        </div>
 
-  const renderOfferRow = (o: Offer, role: 'seller' | 'buyer') => {
-    const isPending = o.status === 'pending';
-    const isCountered = o.status === 'countered';
-    return (
-      <div key={o.id} className="grid grid-cols-12 gap-2 py-2 border-b text-sm">
-        <div className="col-span-1">#{o.id}</div>
-        <div className="col-span-2">Listing {o.listingId}</div>
-        <div className="col-span-2">{o.offerAmount} €</div>
-        <div className="col-span-2">{format(o.counterAmount)}</div>
-        <div className="col-span-2">
-          <Badge variant={o.status === 'pending' ? 'outline' : o.status === 'accepted' ? 'default' : o.status === 'rejected' ? 'destructive' : 'secondary'}>
-            {o.status}
-          </Badge>
-        </div>
-        <div className="col-span-3 flex gap-2 justify-end">
-          {role === 'seller' && isPending && (
-            <>
-              <Button size="xs" variant="default" onClick={() => acceptMutation.mutate({ offerId: o.id })} disabled={acceptMutation.isLoading}>Akzeptieren</Button>
-              <Button size="xs" variant="secondary" onClick={() => rejectMutation.mutate({ offerId: o.id })} disabled={rejectMutation.isLoading}>Ablehnen</Button>
-              <Button size="xs" variant="outline" onClick={() => { setCounterOpen(true); setCounterForm({ offerId: o.id, amount: '', message: '' }); }}>Gegenangebot</Button>
-            </>
-          )}
-          {role === 'buyer' && isCountered && (
-            <>
-              <Button size="xs" variant="default" onClick={() => respondCounterMutation.mutate({ offerId: o.id, action: 'accept' })}>Annehmen</Button>
-              <Button size="xs" variant="secondary" onClick={() => respondCounterMutation.mutate({ offerId: o.id, action: 'reject' })}>Ablehnen</Button>
-            </>
-          )}
-        </div>
-      </div>
-    );
-  };
+        {offer.message && (
+          <div className="text-sm bg-muted p-2 rounded">
+            <span className="font-medium">Nachricht:</span> {offer.message}
+          </div>
+        )}
+
+        {offer.counterMessage && (
+          <div className="text-sm bg-blue-50 p-2 rounded">
+            <span className="font-medium">Gegenangebot-Nachricht:</span> {offer.counterMessage}
+          </div>
+        )}
+
+        {offer.expiresAt && offer.status === "pending" && (
+          <div className="text-xs text-muted-foreground">
+            Läuft ab: {formatDistanceToNow(new Date(offer.expiresAt), { addSuffix: true, locale: de })}
+          </div>
+        )}
+
+        {/* Actions for incoming offers (Verkäufer) */}
+        {isIncoming && offer.status === "pending" && (
+          <div className="flex gap-2 pt-2">
+            <Button
+              size="sm"
+              onClick={() => handleAccept(offer.id)}
+              disabled={acceptMutation.isPending}
+            >
+              <CheckCircle className="w-4 h-4 mr-1" />
+              Annehmen
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleOpenCounterDialog(offer.id, parseFloat(offer.offerAmount))}
+              disabled={counterMutation.isPending}
+            >
+              <MessageSquare className="w-4 h-4 mr-1" />
+              Gegenangebot
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => handleReject(offer.id)}
+              disabled={rejectMutation.isPending}
+            >
+              <XCircle className="w-4 h-4 mr-1" />
+              Ablehnen
+            </Button>
+          </div>
+        )}
+
+        {/* Actions for outgoing offers (Käufer) */}
+        {!isIncoming && offer.status === "countered" && (
+          <div className="flex gap-2 pt-2">
+            <Button
+              size="sm"
+              onClick={() => handleRespondToCounter(offer.id, "accept")}
+              disabled={respondToCounterMutation.isPending}
+            >
+              <CheckCircle className="w-4 h-4 mr-1" />
+              Gegenangebot annehmen
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => handleRespondToCounter(offer.id, "reject")}
+              disabled={respondToCounterMutation.isPending}
+            >
+              <XCircle className="w-4 h-4 mr-1" />
+              Ablehnen
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 
   return (
     <DashboardLayout>
-        <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <BackButton href="/seller/dashboard" label="Zurück" />
-          <h1 className="text-2xl font-semibold">Offer Management</h1>
-        </div>
-        <div className="flex gap-2">
-          <Button variant={tab === 'incoming' ? 'default' : 'outline'} onClick={() => setTab('incoming')}>Eingehend</Button>
-          <Button variant={tab === 'mine' ? 'default' : 'outline'} onClick={() => setTab('mine')}>Ausgehend</Button>
-          <Button variant={tab === 'actions' ? 'default' : 'outline'} onClick={() => setTab('actions')}>Aktionen</Button>
-          <Button variant={tab === 'create' ? 'default' : 'outline'} onClick={() => setTab('create')}>Neu</Button>
-        </div>
+      <div className="container mx-auto py-6 max-w-6xl">
+        <h1 className="text-3xl font-bold mb-6">Angebotsverwaltung</h1>
+
+        <Tabs defaultValue="incoming" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="incoming">
+              Eingehende Angebote
+              {incomingQuery.data && incomingQuery.data.total > 0 && (
+                <Badge variant="secondary" className="ml-2">{incomingQuery.data.total}</Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="outgoing">
+              Meine Angebote
+              {outgoingQuery.data && outgoingQuery.data.total > 0 && (
+                <Badge variant="secondary" className="ml-2">{outgoingQuery.data.total}</Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Eingehende Angebote (Verkäufer-Sicht) */}
+          <TabsContent value="incoming">
+            <div className="mb-4">
+              <Label>Filter nach Status</Label>
+              <select
+                className="w-full mt-1 p-2 border rounded"
+                value={incomingStatus || ""}
+                onChange={(e) => {
+                  setIncomingStatus(e.target.value as OfferStatus || undefined);
+                  setIncomingPage(1);
+                }}
+              >
+                <option value="">Alle</option>
+                <option value="pending">Ausstehend</option>
+                <option value="countered">Gegenangebot</option>
+                <option value="accepted">Angenommen</option>
+                <option value="rejected">Abgelehnt</option>
+                <option value="expired">Abgelaufen</option>
+              </select>
+            </div>
+
+            {incomingQuery.isLoading && <p>Lädt...</p>}
+            {incomingQuery.error && <p className="text-red-500">Fehler: {incomingQuery.error.message}</p>}
+            
+            {incomingQuery.data && (
+              <>
+                {incomingQuery.data.items.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-8 text-center text-muted-foreground">
+                      Keine eingehenden Angebote vorhanden.
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    {incomingQuery.data.items.map((offer) => renderOfferCard(offer, true))}
+                    
+                    {/* Pagination */}
+                    {incomingQuery.data.total > 10 && (
+                      <div className="flex justify-center gap-2 mt-6">
+                        <Button
+                          variant="outline"
+                          onClick={() => setIncomingPage(p => Math.max(1, p - 1))}
+                          disabled={incomingPage === 1}
+                        >
+                          Zurück
+                        </Button>
+                        <span className="py-2 px-4">
+                          Seite {incomingPage} von {Math.ceil(incomingQuery.data.total / 10)}
+                        </span>
+                        <Button
+                          variant="outline"
+                          onClick={() => setIncomingPage(p => p + 1)}
+                          disabled={incomingPage >= Math.ceil(incomingQuery.data.total / 10)}
+                        >
+                          Weiter
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+          </TabsContent>
+
+          {/* Ausgehende Angebote (Käufer-Sicht) */}
+          <TabsContent value="outgoing">
+            <div className="mb-4">
+              <Label>Filter nach Status</Label>
+              <select
+                className="w-full mt-1 p-2 border rounded"
+                value={outgoingStatus || ""}
+                onChange={(e) => {
+                  setOutgoingStatus(e.target.value as OfferStatus || undefined);
+                  setOutgoingPage(1);
+                }}
+              >
+                <option value="">Alle</option>
+                <option value="pending">Ausstehend</option>
+                <option value="countered">Gegenangebot erhalten</option>
+                <option value="accepted">Angenommen</option>
+                <option value="rejected">Abgelehnt</option>
+                <option value="expired">Abgelaufen</option>
+              </select>
+            </div>
+
+            {outgoingQuery.isLoading && <p>Lädt...</p>}
+            {outgoingQuery.error && <p className="text-red-500">Fehler: {outgoingQuery.error.message}</p>}
+            
+            {outgoingQuery.data && (
+              <>
+                {outgoingQuery.data.items.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-8 text-center text-muted-foreground">
+                      Du hast noch keine Angebote gemacht.
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    {outgoingQuery.data.items.map((offer) => renderOfferCard(offer, false))}
+                    
+                    {/* Pagination */}
+                    {outgoingQuery.data.total > 10 && (
+                      <div className="flex justify-center gap-2 mt-6">
+                        <Button
+                          variant="outline"
+                          onClick={() => setOutgoingPage(p => Math.max(1, p - 1))}
+                          disabled={outgoingPage === 1}
+                        >
+                          Zurück
+                        </Button>
+                        <span className="py-2 px-4">
+                          Seite {outgoingPage} von {Math.ceil(outgoingQuery.data.total / 10)}
+                        </span>
+                        <Button
+                          variant="outline"
+                          onClick={() => setOutgoingPage(p => p + 1)}
+                          disabled={outgoingPage >= Math.ceil(outgoingQuery.data.total / 10)}
+                        >
+                          Weiter
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        {/* Counter-Dialog */}
+        <Dialog open={counterDialog.open} onOpenChange={(open) => {
+          if (!open) {
+            setCounterDialog({ open: false, offerId: null, currentAmount: 0 });
+            setCounterAmount("");
+            setCounterMessage("");
+          }
+        }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Gegenangebot erstellen</DialogTitle>
+              <DialogDescription>
+                Aktuelles Angebot: {counterDialog.currentAmount.toFixed(2)} €
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="counterAmount">Dein Gegenangebot (€)</Label>
+                <Input
+                  id="counterAmount"
+                  type="number"
+                  step="0.01"
+                  value={counterAmount}
+                  onChange={(e) => setCounterAmount(e.target.value)}
+                  placeholder={`Mindestens ${(counterDialog.currentAmount + 0.01).toFixed(2)}`}
+                />
+              </div>
+              <div>
+                <Label htmlFor="counterMessage">Nachricht (optional)</Label>
+                <Textarea
+                  id="counterMessage"
+                  value={counterMessage}
+                  onChange={(e) => setCounterMessage(e.target.value)}
+                  placeholder="z.B. Begründung für den Gegenwert..."
+                  maxLength={500}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setCounterDialog({ open: false, offerId: null, currentAmount: 0 })}
+              >
+                Abbrechen
+              </Button>
+              <Button onClick={handleSubmitCounter} disabled={counterMutation.isPending}>
+                Gegenangebot senden
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
-
-      {tab === 'incoming' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Eingehende Angebote</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4 mb-4">
-              <div className="flex items-center gap-2">
-                <label className="text-xs">Status:</label>
-                <select className="border rounded px-2 py-1 text-xs" value={statusFilterIncoming} onChange={e => { setStatusFilterIncoming(e.target.value); setIncomingPage(1); }}>
-                  <option value="">Alle</option>
-                  <option value="pending">pending</option>
-                  <option value="accepted">accepted</option>
-                  <option value="rejected">rejected</option>
-                  <option value="countered">countered</option>
-                  <option value="expired">expired</option>
-                </select>
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-xs">PageSize:</label>
-                <select className="border rounded px-2 py-1 text-xs" value={pageSize} onChange={e => { setPageSize(parseInt(e.target.value, 10)); setIncomingPage(1); setMinePage(1); }}>
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-12 gap-2 font-semibold border-b pb-2 text-xs">
-              <div>#</div><div className="col-span-2">Listing</div><div className="col-span-2">Angebot</div><div className="col-span-2">Gegenangebot</div><div className="col-span-2">Status</div><div className="col-span-3 text-right">Aktionen</div>
-            </div>
-            {incoming.data?.items?.length ? incoming.data.items.map(o => renderOfferRow(o as any, 'seller')) : <p className="py-4 text-sm">Keine Angebote</p>}
-            <div className="flex justify-between items-center mt-4 text-xs">
-              <span>Seite {incomingPage} / {Math.max(1, Math.ceil((incoming.data?.total || 0) / pageSize))}</span>
-              <div className="flex gap-2">
-                <Button variant="outline" size="xs" disabled={incomingPage === 1} onClick={() => setIncomingPage(p => p - 1)}>Zurück</Button>
-                <Button variant="outline" size="xs" disabled={(incoming.data?.total || 0) <= incomingPage * pageSize} onClick={() => setIncomingPage(p => p + 1)}>Weiter</Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {tab === 'mine' && (
-        <Card className="mt-6">
-          <CardHeader><CardTitle>Meine Angebote</CardTitle></CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4 mb-4">
-              <div className="flex items-center gap-2">
-                <label className="text-xs">Status:</label>
-                <select className="border rounded px-2 py-1 text-xs" value={statusFilterMine} onChange={e => { setStatusFilterMine(e.target.value); setMinePage(1); }}>
-                  <option value="">Alle</option>
-                  <option value="pending">pending</option>
-                  <option value="accepted">accepted</option>
-                  <option value="rejected">rejected</option>
-                  <option value="countered">countered</option>
-                  <option value="expired">expired</option>
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-12 gap-2 font-semibold border-b pb-2 text-xs">
-              <div>#</div><div className="col-span-2">Listing</div><div className="col-span-2">Angebot</div><div className="col-span-2">Gegenangebot</div><div className="col-span-2">Status</div><div className="col-span-3 text-right">Aktionen</div>
-            </div>
-            {mine.data?.items?.length ? mine.data.items.map(o => renderOfferRow(o as any, 'buyer')) : <p className="py-4 text-sm">Keine Angebote</p>}
-            <div className="flex justify-between items-center mt-4 text-xs">
-              <span>Seite {minePage} / {Math.max(1, Math.ceil((mine.data?.total || 0) / pageSize))}</span>
-              <div className="flex gap-2">
-                <Button variant="outline" size="xs" disabled={minePage === 1} onClick={() => setMinePage(p => p - 1)}>Zurück</Button>
-                <Button variant="outline" size="xs" disabled={(mine.data?.total || 0) <= minePage * pageSize} onClick={() => setMinePage(p => p + 1)}>Weiter</Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {tab === 'actions' && (
-        <Card className="mt-6">
-          <CardHeader><CardTitle>Aktionen erforderlich</CardTitle></CardHeader>
-          <CardContent>
-            <h3 className="text-sm font-medium mb-2">Als Verkäufer (pending)</h3>
-            <div className="space-y-1 mb-4">
-              {pending.data?.seller?.length ? pending.data.seller.map(o => renderOfferRow(o as any, 'seller')) : <p className="text-xs">Keine offenen Verkäufer-Aktionen</p>}
-            </div>
-            <Separator />
-            <h3 className="text-sm font-medium my-2">Als Käufer (countered)</h3>
-            <div className="space-y-1">
-              {pending.data?.buyer?.length ? pending.data.buyer.map(o => renderOfferRow(o as any, 'buyer')) : <p className="text-xs">Keine offenen Käufer-Aktionen</p>}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {tab === 'create' && (
-        <Card className="mt-6">
-          <CardHeader><CardTitle>Neues Angebot erstellen</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-xs font-medium">Listing ID</label>
-              <Input value={createForm.listingId} onChange={e => setCreateForm(f => ({ ...f, listingId: e.target.value }))} placeholder="z.B. 12" />
-            </div>
-            <div>
-              <label className="text-xs font-medium">Betrag (€)</label>
-              <Input value={createForm.amount} onChange={e => setCreateForm(f => ({ ...f, amount: e.target.value }))} placeholder="z.B. 19.99" />
-            </div>
-            <div>
-              <label className="text-xs font-medium">Nachricht (optional)</label>
-              <Textarea value={createForm.message} onChange={e => setCreateForm(f => ({ ...f, message: e.target.value }))} rows={4} />
-            </div>
-            <Button onClick={handleCreate} disabled={createMutation.isLoading}>Angebot senden</Button>
-          </CardContent>
-        </Card>
-      )}
-
-      <Dialog open={counterOpen} onOpenChange={setCounterOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Gegenangebot</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-xs font-medium">Neuer Betrag (€)</label>
-              <Input value={counterForm.amount} onChange={e => setCounterForm(f => ({ ...f, amount: e.target.value }))} />
-            </div>
-            <div>
-              <label className="text-xs font-medium">Nachricht (optional)</label>
-              <Textarea value={counterForm.message} onChange={e => setCounterForm(f => ({ ...f, message: e.target.value }))} rows={3} />
-            </div>
-            <Button onClick={handleCounter} disabled={counterMutation.isLoading}>Senden</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </DashboardLayout>
   );
 }
