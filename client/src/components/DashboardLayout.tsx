@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { APP_LOGO, APP_TITLE, getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users, ShoppingBag, MessageSquare, Settings, Shield, FileText, Clock } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, Users, ShoppingBag, MessageSquare, Settings, Shield, FileText, Clock, Handshake } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
@@ -40,6 +40,7 @@ const baseMenuItems: MenuItem[] = [
   { icon: ShoppingBag, label: "Käufer-Bereich", path: "/buyer/dashboard", roles: ["user", "admin", "super_admin"] },
   // Seller area only for active sellers or admins
   { icon: ShoppingBag, label: "Verkäufer-Bereich", path: "/seller/dashboard", roles: ["user", "admin", "super_admin"], showIf: (u) => Boolean(u && (u.role !== "user" ? true : u.isSellerActive)) },
+  { icon: Handshake, label: "Angebote", path: "/offers", roles: ["user", "admin", "super_admin"] },
   { icon: MessageSquare, label: "Nachrichten", path: "/messages", roles: ["user", "admin", "super_admin"] },
   { icon: Users, label: "Benutzerverwaltung", path: "/admin/users", roles: ["admin", "super_admin"] },
   { icon: Shield, label: "Admin-Verwaltung", path: "/admin/management", roles: ["super_admin"] },
