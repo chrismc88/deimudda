@@ -362,6 +362,19 @@ export async function acceptOffer(id: number) {
     }
     console.warn('[acceptOffer] konnte min_transaction_amount Setting nicht laden, fallback genutzt');
   }
+  // Enforce seller payout minimum
+  try {
+    const sellerMinRaw = await _getSystemSettingFn('seller_payout_minimum');
+    const sellerMin = sellerMinRaw ? parseFloat(sellerMinRaw) : 1.00; // Default 1€
+    if (!isNaN(sellerMin) && amount < sellerMin) {
+      throw new Error(`Auszahlungsbetrag (${amount.toFixed(2)}€) unter Mindest-Auszahlung ${sellerMin.toFixed(2)}€`);
+    }
+  } catch (e) {
+    if (e instanceof Error && e.message.startsWith('Auszahlungsbetrag')) {
+      throw e;
+    }
+    console.warn('[acceptOffer] seller_payout_minimum Setting nicht verfügbar, fallback genutzt');
+  }
   const platformFeeFixedRaw = await _getSystemSettingFn('platform_fee_fixed');
   const paypalPercRaw = await _getSystemSettingFn('paypal_fee_percentage');
   const paypalFixedRaw = await _getSystemSettingFn('paypal_fee_fixed');
@@ -2156,7 +2169,21 @@ export async function isIPBlocked(ipAddress: string): Promise<boolean> {
       ))
       .limit(1);
 
-    return result.length > 0;
+    if (result.length === 0) return false;
+
+    // Auto-unblock nach Ablauf der Dauer (ip_block_duration_hours)
+    const hoursRaw = await getSystemSetting('ip_block_duration_hours');
+    const hours = hoursRaw ? parseInt(hoursRaw, 10) : 6; // Default 6h
+    if (hours > 0) {
+      const block = result[0] as any;
+      const blockedAt = block.blockedAt as Date;
+      const expiresAt = new Date(blockedAt.getTime() + hours * 60 * 60 * 1000);
+      if (new Date() > expiresAt) {
+        await unblockIP(ipAddress); // Silent auto-unblock
+        return false;
+      }
+    }
+    return true;
   } catch (error) {
     console.error("[Database] Failed to check if IP is blocked:", error);
     return false; // Fail open
@@ -2189,6 +2216,8 @@ export async function trackLoginAttempt(
 
     // Auto-block after threshold
     if (!success) {
+      const maxAttemptsRaw = await getSystemSetting('max_login_attempts');
+      const maxAttempts = maxAttemptsRaw ? parseInt(maxAttemptsRaw, 10) : 5;
       const recentAttempts = await db
         .select()
         .from(loginAttempts)
@@ -2200,13 +2229,29 @@ export async function trackLoginAttempt(
           )
         );
 
-      if (recentAttempts.length >= 5) {
-        console.log(`[Database] Auto-blocking IP ${ip} after ${recentAttempts.length} failed attempts`);
+      if (recentAttempts.length >= maxAttempts) {
+        console.log(`[Database] Auto-blocking IP ${ip} after ${recentAttempts.length} failed attempts (threshold ${maxAttempts})`);
         await blockIP(ip, `Auto-blocked: ${recentAttempts.length} failed login attempts in 15 minutes`, 1);
       }
     }
   } catch (error) {
     console.error("[Database] Failed to track login attempt:", error);
+  }
+}
+
+// Cleanup alter Benachrichtigungen nach retention
+export async function cleanupOldNotifications(retentionDays: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  try {
+    if (retentionDays <= 0) return 0;
+    const deleted = await db.execute(sql`DELETE FROM notifications WHERE createdAt < DATE_SUB(NOW(), INTERVAL ${retentionDays} DAY)`);
+    // deleted.affectedRows may be available depending on adapter; fallback 0
+    // @ts-ignore
+    return deleted?.affectedRows || 0;
+  } catch (error) {
+    console.error('[Database] Failed to cleanup old notifications:', error);
+    return 0;
   }
 }
 

@@ -126,10 +126,12 @@ async function startServer() {
     );
   }
   
-  // Login Rate Limiting: 5 attempts per 15 minutes
+  // Login Rate Limiting: dynamic max attempts from system settings
+  const rawMaxAttempts = await db.getSystemSetting('max_login_attempts');
+  const dynamicMaxAttempts = rawMaxAttempts ? parseInt(rawMaxAttempts, 10) : 5;
   const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 5,
+    max: dynamicMaxAttempts,
     message: "Too many login attempts, please try again later.",
     skipSuccessfulRequests: true,
   });
@@ -286,6 +288,19 @@ async function startServer() {
 
   server.listen(port, "0.0.0.0", () => {
     console.log(`Server running on http://0.0.0.0:${port}/`);
+    // Schedule notification cleanup job hourly
+    setInterval(async () => {
+      try {
+        const retentionRaw = await db.getSystemSetting('notification_retention_days');
+        const retention = retentionRaw ? parseInt(retentionRaw, 10) : 30;
+        const deleted = await db.cleanupOldNotifications(retention);
+        if (deleted > 0) {
+          console.log(`[Cleanup] Deleted ${deleted} old notifications (> ${retention} days)`);
+        }
+      } catch (e) {
+        console.error('[Cleanup] Notification cleanup failed:', e);
+      }
+    }, 60 * 60 * 1000); // hourly
   });
 }
 

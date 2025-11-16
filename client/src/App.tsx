@@ -40,6 +40,8 @@ import AdminManage from "./pages/AdminManage";
 import AdminManagement from "./pages/AdminManagement";
 import AdminReports from "./pages/AdminReports";
 import AdminLogs from "./pages/AdminLogs";
+import AdminSessions from "./pages/AdminSessions";
+import AdminLimits from "./pages/AdminLimits";
 
 // Additional Pages
 import Widerruf from "./pages/Widerruf";
@@ -97,6 +99,8 @@ function Router() {
       <Route path="/admin/management" component={AdminManagement} />
       <Route path="/admin/reports" component={AdminReports} />
       <Route path="/admin/logs" component={AdminLogs} />
+      <Route path="/admin/sessions" component={AdminSessions} />
+      <Route path="/admin/limits" component={AdminLimits} />
       
       <Route path="/404" component={NotFound} />
       {/* Final fallback route */}

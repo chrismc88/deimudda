@@ -26,6 +26,26 @@ export default function ListingDetail() {
   const [reportReason, setReportReason] = useState("");
   const [reportMessage, setReportMessage] = useState("");
 
+  // Offer dialog state
+  const [offerDialogOpen, setOfferDialogOpen] = useState(false);
+  const [offerAmount, setOfferAmount] = useState("");
+  const [offerError, setOfferError] = useState("");
+  const globalMinOffer = trpc.admin.getSystemSetting.useQuery('min_offer_amount');
+
+  const createOffer = trpc.offer.create.useMutation({
+    onSuccess: () => {
+      toast.success('Angebot gesendet');
+      setOfferDialogOpen(false);
+      setOfferAmount('');
+      setOfferError('');
+      utils.offer.getMine.invalidate();
+      utils.offer.getIncoming.invalidate();
+    },
+    onError: (err) => {
+      setOfferError(err.message);
+    }
+  });
+
   const listing = trpc.listing.getById.useQuery(listingId, {
     enabled: !!id,
   });
@@ -360,10 +380,87 @@ export default function ListingDetail() {
                             </Button>
                           </Link>
                         ) : (
-                          <Button className="w-full gap-2" size="lg" variant="outline">
-                            <Gavel className="w-5 h-5" />
-                            Angebot senden
-                          </Button>
+                          <Dialog open={offerDialogOpen} onOpenChange={setOfferDialogOpen}>
+                            <DialogTrigger asChild>
+                              <Button className="w-full gap-2" size="lg" variant="outline">
+                                <Gavel className="w-5 h-5" />
+                                Angebot senden
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Angebot senden</DialogTitle>
+                                <DialogDescription>
+                                  Mindestbetrag beachten. Dein Angebot ist verbindlich bis zur Antwort oder Ablauf.
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <div>
+                                  <Label>Betrag (€)</Label>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    min={Math.max(
+                                      (data.offerMinPrice ? parseFloat(String(data.offerMinPrice)) : 0),
+                                      globalMinOffer.data ? parseFloat(globalMinOffer.data) : 0
+                                    )}
+                                    value={offerAmount}
+                                    onChange={e => setOfferAmount(e.target.value)}
+                                    className="border rounded px-3 py-2 w-full"
+                                  />
+                                  <p className="text-xs text-gray-600 mt-1">
+                                    Mindestbetrag: {Math.max(
+                                      (data.offerMinPrice ? parseFloat(String(data.offerMinPrice)) : 0),
+                                      globalMinOffer.data ? parseFloat(globalMinOffer.data) : 0
+                                    ).toFixed(2)}€
+                                  </p>
+                                  {offerAmount && parseFloat(offerAmount) < Math.max(
+                                    (data.offerMinPrice ? parseFloat(String(data.offerMinPrice)) : 0),
+                                    globalMinOffer.data ? parseFloat(globalMinOffer.data) : 0
+                                  ) && (
+                                    <p className="text-xs text-red-600 mt-1">Angebot liegt unter Mindestbetrag</p>
+                                  )}
+                                </div>
+                                <div>
+                                  <Label>Nachricht (optional)</Label>
+                                  <Textarea
+                                    placeholder="Kurze Nachricht an den Verkäufer"
+                                    rows={3}
+                                    value={reportMessage}
+                                    onChange={e => setReportMessage(e.target.value)}
+                                  />
+                                </div>
+                                {offerError && (
+                                  <Alert className="bg-red-50 border-red-200">
+                                    <AlertDescription className="text-red-700 text-sm">{offerError}</AlertDescription>
+                                  </Alert>
+                                )}
+                              </div>
+                              <DialogFooter>
+                                <Button variant="outline" onClick={() => setOfferDialogOpen(false)}>Abbrechen</Button>
+                                <Button
+                                  disabled={createOffer.isPending || !offerAmount || parseFloat(offerAmount) < Math.max(
+                                    (data.offerMinPrice ? parseFloat(String(data.offerMinPrice)) : 0),
+                                    globalMinOffer.data ? parseFloat(globalMinOffer.data) : 0
+                                  )}
+                                  onClick={() => {
+                                    const amountNum = parseFloat(offerAmount);
+                                    if (!Number.isFinite(amountNum)) {
+                                      setOfferError('Ungültiger Betrag');
+                                      return;
+                                    }
+                                    createOffer.mutate({
+                                      listingId: data.id,
+                                      offerAmount: amountNum,
+                                      message: reportMessage || undefined,
+                                    });
+                                  }}
+                                >
+                                  {createOffer.isPending ? 'Sendet...' : 'Angebot senden'}
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
                         )}
                         <p className="text-xs text-gray-500 text-center">
                           Sichere Zahlung mit PayPal

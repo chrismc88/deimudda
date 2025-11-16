@@ -8,6 +8,8 @@ import {
   Settings, 
   BarChart3, 
   Shield,
+  Clock,
+  Scale,
   DollarSign,
   ChevronRight
 } from "lucide-react";
@@ -53,6 +55,20 @@ export default function AdminNav() {
       label: "Analytics",
       icon: BarChart3,
       description: "Business Intelligence"
+    },
+    {
+      path: "/admin/sessions",
+      label: "Sessions",
+      icon: Clock,
+      description: "Sessions & Timeouts",
+      superAdminOnly: true
+    },
+    {
+      path: "/admin/limits",
+      label: "Limits",
+      icon: Scale,
+      description: "Grenzwerte & Regeln",
+      superAdminOnly: true
     },
     {
       path: "/admin/fees",

@@ -995,6 +995,14 @@ export const appRouter = router({
         if (input.offerAmount < min) {
           throw new TRPCError({ code: 'BAD_REQUEST', message: 'Offer below minimum price' });
         }
+        // Global Mindestbetrag aus Settings (falls höher als Listing-spezifisch)
+        const globalMinRaw = await db.getSystemSetting('min_offer_amount');
+        if (globalMinRaw) {
+          const globalMin = parseFloat(globalMinRaw);
+            if (!isNaN(globalMin) && input.offerAmount < globalMin) {
+              throw new TRPCError({ code: 'BAD_REQUEST', message: `Offer below global minimum (${globalMin.toFixed(2)}€)` });
+            }
+        }
         if (listing.sellerId === ctx.user.id) {
           throw new TRPCError({ code: 'FORBIDDEN', message: 'Cannot offer on own listing' });
         }
