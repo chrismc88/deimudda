@@ -2123,18 +2123,124 @@ export async function trackLoginAttempt(
   }
 }
 
-// Get security logs (real data from DB) - TODO: Fix JOIN issues
+// Get security logs (real data from DB)
 export async function getSecurityLogs(limit: number = 50) {
-  // Temporarily return mock data due to Drizzle JOIN type issues
-  return [
-    {
-      id: "1",
-      type: "ip_block" as const,
-      ipAddress: "192.168.1.100",
-      details: "Test block",
-      timestamp: new Date(),
-      adminId: 1,
-      adminName: "Admin",
-    },
-  ];
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get security logs: database not available");
+    return [];
+  }
+
+  try {
+    const logs: Array<{
+      id: string;
+      type: "ip_block" | "ip_unblock" | "login_fail" | "login_success";
+      ipAddress: string;
+      details: string;
+      timestamp: Date;
+      adminId: number | null;
+      adminName: string | null;
+    }> = [];
+
+    // Get blocked IPs
+    const blocks = await db
+      .select({
+        id: blockedIPs.id,
+        ip: blockedIPs.ip,
+        reason: blockedIPs.reason,
+        blockedAt: blockedIPs.blockedAt,
+        blockedBy: blockedIPs.blockedBy,
+        unblockedAt: blockedIPs.unblockedAt,
+        unblockedBy: blockedIPs.unblockedBy,
+      })
+      .from(blockedIPs)
+      .orderBy(desc(blockedIPs.blockedAt))
+      .limit(limit);
+
+    for (const block of blocks) {
+      // Get admin name for blocker
+      const blocker = await db
+        .select({ name: users.name })
+        .from(users)
+        .where(eq(users.id, block.blockedBy))
+        .limit(1);
+
+      logs.push({
+        id: `block-${block.id}`,
+        type: "ip_block",
+        ipAddress: block.ip,
+        details: block.reason,
+        timestamp: block.blockedAt,
+        adminId: block.blockedBy,
+        adminName: blocker[0]?.name || "Unknown Admin",
+      });
+
+      // If unblocked, add unblock log
+      if (block.unblockedAt && block.unblockedBy) {
+        const unblocker = await db
+          .select({ name: users.name })
+          .from(users)
+          .where(eq(users.id, block.unblockedBy))
+          .limit(1);
+
+        logs.push({
+          id: `unblock-${block.id}`,
+          type: "ip_unblock",
+          ipAddress: block.ip,
+          details: `Unblocked by ${unblocker[0]?.name || "Unknown Admin"}`,
+          timestamp: block.unblockedAt,
+          adminId: block.unblockedBy,
+          adminName: unblocker[0]?.name || "Unknown Admin",
+        });
+      }
+    }
+
+    // Get recent login attempts (failed + successful)
+    const attempts = await db
+      .select({
+        id: loginAttempts.id,
+        ip: loginAttempts.ip,
+        userId: loginAttempts.userId,
+        success: loginAttempts.success,
+        timestamp: loginAttempts.timestamp,
+        userAgent: loginAttempts.userAgent,
+      })
+      .from(loginAttempts)
+      .orderBy(desc(loginAttempts.timestamp))
+      .limit(limit);
+
+    for (const attempt of attempts) {
+      let userName: string | null = null;
+      if (attempt.userId) {
+        const user = await db
+          .select({ name: users.name })
+          .from(users)
+          .where(eq(users.id, attempt.userId))
+          .limit(1);
+        userName = user[0]?.name || null;
+      }
+
+      logs.push({
+        id: `login-${attempt.id}`,
+        type: attempt.success ? "login_success" : "login_fail",
+        ipAddress: attempt.ip,
+        details: userName
+          ? `${attempt.success ? "Success" : "Failed"} login: ${userName} (${attempt.userAgent?.substring(0, 50) || "Unknown agent"})`
+          : `${attempt.success ? "Success" : "Failed"} login attempt (${attempt.userAgent?.substring(0, 50) || "Unknown agent"})`,
+        timestamp: attempt.timestamp,
+        adminId: attempt.userId,
+        adminName: userName,
+      });
+    }
+
+    // Sort all logs by timestamp descending
+    logs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+    console.log(`[Database] Retrieved ${logs.length} security log entries`);
+    return logs.slice(0, limit);
+  } catch (error) {
+    console.error("[Database] Failed to get security logs:", error);
+    // Return empty array on error instead of throwing
+    return [];
+  }
 }

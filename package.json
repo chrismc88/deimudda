@@ -13,7 +13,7 @@
     "db:push": "pnpm exec drizzle-kit generate && pnpm exec drizzle-kit migrate",
     "seed:admin": "pnpm exec tsx server/_core/seedAdmin.ts",
     "seed:sample": "pnpm exec tsx server/_core/seedSample.ts",
-    "dev": "cross-env NODE_ENV=development pnpm exec tsx watch server/_core/index.ts"
+    "dev": "cross-env NODE_ENV=development PORT=3001 pnpm exec tsx watch server/_core/index.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.907.0",

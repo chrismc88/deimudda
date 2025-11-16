@@ -64,26 +64,24 @@ pnpm db:push    # Migrations ausführen
 
 ## 🔐 Wichtiges
 
+### Dev-Login aktivieren
 
-### Dev-Login toggeln
-
-- PowerShell (Windows):
-```powershell
-$env:DEV_LOGIN_ENABLED = "false"; pnpm dev   # deaktivieren
-$env:DEV_LOGIN_ENABLED = "true"; pnpm dev    # aktivieren
+In `.env` setzen:
+```env
+DEV_LOGIN_ENABLED=true
+PORT=3001
 ```
 
-- Bash/Zsh (macOS/Linux):
+Dann Server (neu)starten:
 ```bash
-DEV_LOGIN_ENABLED=false pnpm dev   # deaktivieren
-DEV_LOGIN_ENABLED=true pnpm dev    # aktivieren
+pnpm dev
 ```
 
-- Docker Compose: in `docker-compose.yml` oder `.env`
-```yaml
-environment:
-	- DEV_LOGIN_ENABLED=false
-```
+Zugriff:
+- User: `http://localhost:3001/api/dev-login?openId=dev-user&name=Dev%20User`
+- Admin: `http://localhost:3001/api/dev/admin-login?openId=admin-local&name=Admin`
+
+**Wichtig:** In Production ist Dev-Login automatisch deaktiviert (Sicherheitssperre)
 
 
 ## 📚 Weitere Docs\n\n- STATUS.md – Aktueller Projekt-Status\n- docs/ – Architektur, API, Development, Deployment\n- AGENTS.md – Guidelines für AI Agents\n- PAYPAL_SETUP.md – PayPal Integration\n- .github/copilot-instructions.md – Repo-spezifische Patterns\n\n---\n\n**Status:** ~92% fertig | **Branch:** 002-sandbox | **Lizenz:** Internal Development\n

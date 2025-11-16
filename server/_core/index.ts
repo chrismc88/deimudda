@@ -59,7 +59,9 @@ async function startServer() {
         scriptSrc: ["'self'", "'unsafe-inline'", "blob:"], // React dev mode + Vite workers
         workerSrc: ["'self'", "blob:"], // Vite HMR workers
         imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'"],
+        connectSrc: process.env.NODE_ENV === "development"
+          ? ["'self'", "ws:", "blob:"]
+          : ["'self'"],
       },
     },
     hsts: {
