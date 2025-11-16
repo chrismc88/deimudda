@@ -30,6 +30,10 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   }
 
   try {
+    // Check if user exists (for welcome notification)
+    const existingUser = await db.select().from(users).where(eq(users.openId, user.openId)).limit(1);
+    const isNewUser = existingUser.length === 0;
+
     const values: InsertUser = {
       openId: user.openId,
     };
@@ -71,6 +75,23 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     await db.insert(users).values(values).onDuplicateKeyUpdate({
       set: updateSet,
     });
+
+    // Create welcome notification for new users
+    if (isNewUser) {
+      const newUser = await db.select().from(users).where(eq(users.openId, user.openId)).limit(1);
+      if (newUser.length > 0 && _createNotificationFn) {
+        try {
+          await _createNotificationFn(newUser[0].id, {
+            type: 'system',
+            title: 'Willkommen bei Deimudda!',
+            message: 'Schön, dass du da bist! Entdecke jetzt Cannabis-Stecklinge und Seeds von verifizierten Züchtern.',
+            link: '/browse',
+          });
+        } catch (e) {
+          console.error('[Database] Failed to create welcome notification', e);
+        }
+      }
+    }
   } catch (error) {
     console.error("[Database] Failed to upsert user:", error);
     throw error;

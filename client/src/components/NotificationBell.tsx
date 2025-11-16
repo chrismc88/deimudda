@@ -59,14 +59,26 @@ export function NotificationBell() {
   });
 
   const handleNotificationClick = (notification: Notification) => {
-    if (!notification.isRead) {
+    console.log('[NotificationBell] Clicked notification:', notification);
+    
+    if (!notification.read) {
       markAsReadMutation.mutate(notification.id);
     }
 
     // Navigate to action URL if exists
-    if (notification.link) {
+    if (notification.actionUrl) {
+      console.log('[NotificationBell] Navigating to:', notification.actionUrl);
       setOpen(false);
-      setLocation(notification.link);
+      // Use both methods to ensure navigation works
+      setLocation(notification.actionUrl);
+      // Force navigation after a tiny delay to ensure dropdown closes
+      setTimeout(() => {
+        if (window.location.pathname !== notification.actionUrl) {
+          window.location.href = notification.actionUrl;
+        }
+      }, 100);
+    } else {
+      console.log('[NotificationBell] No actionUrl for notification');
     }
   };
 
@@ -119,8 +131,8 @@ export function NotificationBell() {
               {notifications.map((notification: Notification) => (
                 <div
                   key={notification.id}
-                                    className={`flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer ${
-                    !notification.isRead ? "bg-muted/30" : ""
+                  className={`p-4 cursor-pointer hover:bg-muted/50 transition-colors ${
+                    !notification.read ? "bg-muted/30" : ""
                   }`}
                   onClick={() => handleNotificationClick(notification)}
                 >
@@ -130,7 +142,7 @@ export function NotificationBell() {
                         <p className="font-medium text-sm truncate">
                           {notification.title}
                         </p>
-                        {!notification.isRead && (
+                        {!notification.read && (
                           <div className="h-2 w-2 rounded-full bg-blue-500 flex-shrink-0" />
                         )}
                       </div>
