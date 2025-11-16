@@ -1,19 +1,18 @@
-# deimudda – Cannabis Stecklingsbörse
+# deimudda – Cannabis-Stecklingsbörse
 
-Moderne Plattform zum Anbieten, Kaufen und Verwalten von Cannabis-Stecklingen mit Angebotssystem, Messaging, Transaktionen und Admin-Tools.
+Moderne Plattform zum Anbieten, Kaufen und Verwalten von Cannabis-Stecklingen mit Angebotssystem, Messaging, Admin-Tools und dynamischen Systemeinstellungen.
 
-**Stack:** React + Vite + tRPC + Express + MySQL + Drizzle ORM
+**Tech-Stack:** React + Vite · tRPC · Express · MySQL · Drizzle ORM
 
 ---
 
-## 🚀 Quick Start
+## ⚡ Quick Start
 
-### Docker (Empfohlen)
+### Docker (empfohlen)
 ```bash
 docker compose up --build
 ```
-Öffne: `http://localhost:3000` (Port 3001 bei lokalem dev)  
-Dev-Login: `/api/dev-login?openId=admin-local&name=Admin`
+Danach `http://localhost:3000` (Vite) bzw. `http://localhost:3001` (Server) öffnen.
 
 ### Lokal
 ```bash
@@ -24,197 +23,85 @@ pnpm dev
 
 ---
 
-## 📁 Struktur
+## 📁 Projektstruktur
 
 ```
-client/     → React + Vite (wouter routing, DashboardLayout, BackButton)
-server/     → Express + tRPC (Logik: db.ts, Router: routers.ts)
-drizzle/    → Schema + Migrations (.sql Dateien)
-shared/     → Geteilte Typen
-```
-
-**Datenfluss:** React Hook → tRPC Procedure → DB-Funktion → MySQL
-
----
-
-## 🎯 Kern-Features
-
-- **Angebote** – Erstellen, Counter, Akzeptieren mit Transaktionen & Fees
-- **Listings** – Aktivieren/Deaktivieren, Auto-Status bei Ausverkauf
-- **Messaging** – 1:1 Chat mit Unread Counter
-- **Notifications** – Bei Offer-Aktionen mit Unread Badge (Cleanup nach Retention)
-- **Admin** – User/Listing/Security/Report Management + System Settings
-- **Concurrency** – In-Memory Lock bei Offer-Annahme
-
----
-
-## 🛠️ Kommandos
-
-```bash
-pnpm dev        # Dev-Server starten (Port 3001)
-pnpm build      # Production Build
-pnpm start      # Prod Server starten
-pnpm test       # Vitest Tests
-pnpm check      # TypeScript Check
-pnpm format     # Prettier
-pnpm db:push    # Migrations ausführen
-```
-
----
-
-## 🔐 Wichtiges
-
-### Dev-Login aktivieren
-
-In `.env` setzen:
-```env
-DEV_LOGIN_ENABLED=true
-PORT=3001
-```
-
-Dann Server (neu)starten:
-```bash
-pnpm dev
-```
-
-Zugriff:
-- User: `http://localhost:3001/api/dev-login?openId=dev-user&name=Dev%20User`
-- Admin: `http://localhost:3001/api/dev/admin-login?openId=admin-local&name=Admin`
-
-**Wichtig:** In Production ist Dev-Login automatisch deaktiviert (Sicherheitssperre)
-
----
-
-## ⚙️ Dynamische Settings
-
-Diese Schlüssel liegen in `systemSettings` und werden zur Laufzeit genutzt:
-
-**Gebühren**
-- `platform_fee_fixed`, `paypal_fee_percentage`, `paypal_fee_fixed`
-
-**Limits & Qualität**
-- `min_offer_amount`, `max_offers_per_listing`, `max_offers_per_user`, `max_listing_price`, `min_seller_rating`
-
-**Sicherheit & Sessions**
-- `session_lifetime_days`, `ip_block_duration_hours`, `max_login_attempts`, `suspicious_activity_threshold`
-
-**Benachrichtigungen**
-- `notification_retention_days` → stündlicher Cleanup Job
-
-**Auszahlung**
-- `seller_payout_minimum` → Mindest-Auszahlungsbetrag (Validierung bei Offer-Akzept)
-
-Neue Defaults: eigene Migration (`00XX_seed_*.sql`) anhängen, bestehende Dateien nicht ändern.
-
----
-
-## ✅ Kürzlich implementiert
-
-- Dynamische Gebühren (Fix + PayPal) durch Settings
-- Admin-Seiten: Fees, Limits, Sessions
-- Auto-Unblock von IPs nach Laufzeit (`ip_block_duration_hours`)
-- Dynamischer Login-Rate-Limiter (`max_login_attempts`)
-- Notification Cleanup (`notification_retention_days`)
-- Seller Payout Minimum (`seller_payout_minimum`)
-- Globales Mindestangebot (`min_offer_amount`) Client + Server Validierung
-
----
-
-## 📚 Weitere Docs
-
-- STATUS.md – Aktueller Projekt-Status
-- docs/ – Architektur, API, Development, Deployment
-- AGENTS.md – Guidelines für AI Agents
-- PAYPAL_SETUP.md – PayPal Integration
-- .github/copilot-instructions.md – Repo-spezifische Patterns
-
----
-
-**Status:** ~92% fertig | **Branch:** 002-sandbox | **Lizenz:** Internal Development
-# deimudda – Cannabis Stecklingsbörse
-
-Moderne Plattform zum Anbieten, Kaufen und Verwalten von Cannabis-Stecklingen mit Angebotssystem, Messaging, Transaktionen und Admin-Tools.
-
-**Stack:** React + Vite + tRPC + Express + MySQL + Drizzle ORM
-
----
-
-## 🚀 Quick Start
-
-### Docker (Empfohlen)
-```bash
-docker compose up --build
-```
-Öffne: `http://localhost:3000` (Port 3001 bei lokalem dev)  
-Dev-Login: `/api/dev-login?openId=admin-local&name=Admin`
-
-### Lokal
-```bash
-pnpm install
-pnpm db:push
-pnpm dev
-```
-
----
-
-## 📁 Struktur
-
-```
-client/     → React + Vite (wouter routing, DashboardLayout, BackButton)
-server/     → Express + tRPC (Logik: db.ts, Router: routers.ts)
-drizzle/    → Schema + Migrations (.sql Dateien)
-shared/     → Geteilte Typen
+client/      React + Vite (Pages, Components, Hooks)
+server/      Express + tRPC (db.ts, routers.ts, _core/* Infrastruktur)
+drizzle/     DB-Schema & Migrationen (*.sql)
+shared/      Geteilte Typen und Konstanten
+docs/        Architektur-, API- und Deployment-Dokumentation
 ```
 
 **Datenfluss:** React Hook → tRPC Procedure → DB-Funktion → MySQL
 
 ---
 
-## 🎯 Kern-Features
+## 🚀 Kernmodule & Features
 
-- **Angebote** – Erstellen, Counter, Akzeptieren mit Transaktionen & Fees
-- **Listings** – Aktivieren/Deaktivieren, Auto-Status bei Ausverkauf
-- **Messaging** – 1:1 Chat mit Unread Counter
-- **Notifications** – Bei Offer-Aktionen mit Unread Badge
-- **Admin** – User/Listing/Security/Report Management + System Settings
-- **Concurrency** – In-Memory Lock bei Offer-Annahme
+- **Offers** – Erstellen, Zähler, Akzeptieren inkl. Gebühren, Auto-Reduktion von Beständen.
+- **Listings** – Aktivieren/Deaktivieren, Auto-Status bei Ausverkauf, Limits per Setting.
+- **Messaging** – 1:1 Chat mit Unread Counter und Header-Badges.
+- **Notifications** – Offer-/System-Events inkl. Cleanup-Job (`notification_retention_days`).
+- **Admin Suite** – Benutzer, Listings, Reports, Security (IP-Blocking, Login-Logs) & System Settings (Fees, Limits, Sessions, Branding).
+- **Sicherheit** – express-rate-limit, Login-Tracking (`loginAttempts`), IP-Blockierung, Dev-Login per Flag.
 
 ---
 
-## 🛠️ Kommandos
+## 🛠 Entwicklungs-Kommandos
 
 ```bash
-pnpm dev        # Dev-Server starten (Port 3001)
-pnpm build      # Production Build
-pnpm start      # Prod Server starten
-pnpm test       # Vitest Tests
-pnpm check      # TypeScript Check
+pnpm dev        # Dev-Server (API + integrierter Vite) auf Port 3001
+pnpm build      # Frontend + Server builden
+pnpm start      # Produktion aus dist/ starten
+pnpm test       # Vitest (Unit/Integration)
+pnpm check      # TypeScript
 pnpm format     # Prettier
-pnpm db:push    # Migrations ausführen
+pnpm db:push    # Migrations generieren + anwenden
 ```
 
 ---
 
-## 🔐 Wichtiges
+## 🔐 Environments & Dev-Login
 
-### Dev-Login aktivieren
-
-In `.env` setzen:
+In `.env`:
 ```env
-DEV_LOGIN_ENABLED=true
+DATABASE_URL=mysql://user:pass@host/db
+DEV_LOGIN_ENABLED=true        # nur lokal!
 PORT=3001
 ```
 
-Dann Server (neu)starten:
-```bash
-pnpm dev
-```
+Dev-Login-Endpunkte (nur wenn `DEV_LOGIN_ENABLED=true`):
+- `GET  /api/dev-login?openId=dev-user&name=Dev%20User`
+- `POST /api/dev/admin-login { "email": "admin@test.com" }`
 
-Zugriff:
-- User: `http://localhost:3001/api/dev-login?openId=dev-user&name=Dev%20User`
-- Admin: `http://localhost:3001/api/dev/admin-login?openId=admin-local&name=Admin`
+In Produktion ist der Dev-Login hart gesperrt; Rate-Limits + IP-Blocking greifen automatisch.
 
-**Wichtig:** In Production ist Dev-Login automatisch deaktiviert (Sicherheitssperre)
+---
 
+## ⚙️ Dynamische Settings & Admin-Pages
 
-## 📚 Weitere Docs\n\n- STATUS.md – Aktueller Projekt-Status\n- docs/ – Architektur, API, Development, Deployment\n- AGENTS.md – Guidelines für AI Agents\n- PAYPAL_SETUP.md – PayPal Integration\n- .github/copilot-instructions.md – Repo-spezifische Patterns\n\n---\n\n**Status:** ~92% fertig | **Branch:** 002-sandbox | **Lizenz:** Internal Development\n
+Alle Settings liegen in `systemSettings` und lassen sich über folgende Admin-Seiten verwalten:
+
+| Seite | Keys / Bereich | Beschreibung |
+|-------|----------------|--------------|
+| **AdminFees** | `platform_fee_fixed`, `paypal_fee_percentage`, `paypal_fee_fixed` | Plattform- und PayPal-Gebühren |
+| **AdminLimits** | `max_offers_per_listing`, `max_offers_per_user`, `min_offer_amount`, `max_listing_price`, `max_images_per_listing`, `image_max_size_mb`, `min_seller_rating` | Angebots- und Medienlimits |
+| **AdminSessions** | `session_lifetime_days`, `ip_block_duration_hours`, `max_login_attempts`, `suspicious_activity_threshold`, `notification_retention_days` | Sessions, Security, Cleanup |
+| **AdminSettings** | `site_name`, `site_description`, `admin_email`, `maintenance_mode`, `registration_enabled`, `require_listing_approval` | Branding & globale Plattformparameter |
+
+Alle Updates laufen über `server/db.ts#updateSystemSetting` (Insert/Upsert inkl. Alias-Support).
+
+---
+
+## 📚 Dokumentation
+
+- `STATUS.md` – Aktueller Stand & Health-Check
+- `ROADMAP.md` – Chronologischer Fahrplan
+- `SYSTEM_SETTINGS_ANALYSIS.md` – Übersicht aller Settings und Verwendung
+- `docs/ARCHITECTURE.md`, `docs/API.md`, `docs/DEPLOYMENT.md`, `docs/DEVELOPMENT.md`
+- `PAYPAL_SETUP.md`, `AGENTS.md`, `CONSISTENCY_CHECK_REPORT.md`
+
+---
+
+**Branch:** `002-sandbox` · **Lizenz:** Internal Development · Letzte Aktualisierung: November 2025
