@@ -1960,7 +1960,7 @@ export async function blockIP(ipAddress: string, reason: string, adminId: number
   if (!db) throw new Error("Database not available");
 
   try {
-    // Check if IP already blocked
+    // Check if IP already actively blocked
     const existing = await db
       .select()
       .from(blockedIPs)
@@ -1971,9 +1971,12 @@ export async function blockIP(ipAddress: string, reason: string, adminId: number
       .limit(1);
 
     if (existing.length > 0) {
-      console.log(`[Database] IP ${ipAddress} is already blocked`);
+      console.log(`[Database] IP ${ipAddress} is already actively blocked`);
       return { success: false, message: "IP already blocked" };
     }
+
+    // Delete any old entries for this IP (unblocked or not)
+    await db.delete(blockedIPs).where(eq(blockedIPs.ip, ipAddress));
 
     // Insert new block
     await db.insert(blockedIPs).values({

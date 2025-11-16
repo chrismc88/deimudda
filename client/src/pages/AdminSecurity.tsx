@@ -62,20 +62,6 @@ export default function AdminSecurity() {
   const [newIPAddress, setNewIPAddress] = useState("");
   const [blockReason, setBlockReason] = useState("");
 
-  // Check if user is admin or super admin
-  if (!user || !["admin", "super_admin"].includes(user.role)) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Alert className="w-full max-w-md">
-          <Shield className="h-4 w-4" />
-          <AlertDescription>
-            Admin access required to view security settings.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
   // Get blocked IPs
   const { data: blockedIPs, isLoading: loadingIPs, refetch: refetchIPs } = trpc.admin.getBlockedIPs.useQuery();
 
@@ -97,6 +83,20 @@ export default function AdminSecurity() {
       refetchIPs();
     },
   });
+
+  // Check if user is admin or super admin (after all hooks)
+  if (!user || !["admin", "super_admin"].includes(user.role)) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Alert className="w-full max-w-md">
+          <Shield className="h-4 w-4" />
+          <AlertDescription>
+            Admin access required to view security settings.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   const validateIP = (ip: string): boolean => {
     const ipPattern = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;

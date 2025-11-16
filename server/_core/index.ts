@@ -56,7 +56,8 @@ async function startServer() {
       directives: {
         defaultSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"], // Tailwind requires inline styles
-        scriptSrc: ["'self'", "'unsafe-inline'"], // React dev mode
+        scriptSrc: ["'self'", "'unsafe-inline'", "blob:"], // React dev mode + Vite workers
+        workerSrc: ["'self'", "blob:"], // Vite HMR workers
         imgSrc: ["'self'", "data:", "https:"],
         connectSrc: ["'self'"],
       },
