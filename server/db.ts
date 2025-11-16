@@ -170,7 +170,21 @@ export async function createOffer(input: CreateOfferInput): Promise<number | und
         expiresAt: input.expiresAt,
       })
       .$returningId();
-    return result.id as number;
+    const offerId = result.id as number;
+    
+    // Notify seller of new offer
+    try {
+      await _createNotificationFn(input.sellerId, {
+        type: 'offer',
+        title: 'Neues Angebot erhalten',
+        message: `Neues Angebot für Listing #${input.listingId}: ${input.offerAmount.toFixed(2)}€`,
+        link: `/offers/${offerId}`,
+      });
+    } catch (e) {
+      console.error('[Notification] createOffer notify failed', e);
+    }
+    
+    return offerId;
   } catch (err) {
     console.error('[Database] createOffer failed', err);
     throw err;
@@ -334,6 +348,21 @@ export async function acceptOffer(id: number) {
 
 export async function rejectOffer(id: number) {
   await updateOffer(id, { status: 'rejected', respondedAt: new Date() });
+  
+  // Notify buyer of rejection
+  const offer = await _getOfferById(id);
+  if (offer) {
+    try {
+      await _createNotificationFn(offer.buyerId, {
+        type: 'offer',
+        title: 'Angebot abgelehnt',
+        message: `Dein Angebot für Listing #${offer.listingId} wurde abgelehnt.`,
+        link: `/offers/${offer.id}`,
+      });
+    } catch (e) {
+      console.error('[Notification] rejectOffer notify failed', e);
+    }
+  }
 }
 
 export async function counterOffer(id: number, counterAmount: number, counterMessage?: string) {
