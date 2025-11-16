@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Search, Filter } from "lucide-react";
+import { Header } from "@/components/Header";
 
 export default function BrowseListings() {
   const [location] = useLocation();
@@ -74,9 +75,11 @@ export default function BrowseListings() {
     }) || [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
+    <>
+      <Header />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Stecklinge & Samen durchsuchen</h1>
           <p className="text-gray-600">
@@ -258,7 +261,8 @@ export default function BrowseListings() {
             </Button>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
