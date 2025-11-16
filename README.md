@@ -86,14 +86,4 @@ environment:
 ```
 
 
-## 📚 Weitere Docs
-
-- `AGENTS.md` – Guidelines für AI Agents
-- `TODO.md` – Offene Aufgaben
-- `PROJECT_STATUS.md` – Fortschritt & Status
-- `PAYPAL_SETUP.md` – PayPal Integration
-- `.github/copilot-instructions.md` – Repo-spezifische Patterns
-
----
-
-**Status:** ~92% fertig | **Branch:** 002-sandbox | **Lizenz:** Internal Development
+## 📚 Weitere Docs\n\n- STATUS.md – Aktueller Projekt-Status\n- docs/ – Architektur, API, Development, Deployment\n- AGENTS.md – Guidelines für AI Agents\n- PAYPAL_SETUP.md – PayPal Integration\n- .github/copilot-instructions.md – Repo-spezifische Patterns\n\n---\n\n**Status:** ~92% fertig | **Branch:** 002-sandbox | **Lizenz:** Internal Development\n
