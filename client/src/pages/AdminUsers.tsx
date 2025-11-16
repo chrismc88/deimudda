@@ -57,23 +57,7 @@ export default function AdminUsers() {
   const [suspendDays, setSuspendDays] = useState("7");
   const [banReason, setBanReason] = useState("");
 
-  // Check if user is admin or super_admin
-  if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="text-red-800">Zugriff verweigert</CardTitle>
-            <CardDescription className="text-red-600">
-              Sie haben keine Berechtigung, auf die Nutzer-Verwaltung zuzugreifen.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    );
-  }
-
-  // Mutations
+  // Mutations - MUST be declared before any conditional returns
   const warnUserMutation = trpc.admin.warnUser.useMutation({
     onSuccess: () => {
       toast.success("Nutzer wurde erfolgreich verwarnt");
@@ -157,6 +141,22 @@ export default function AdminUsers() {
       toast.error(`Fehler beim Entziehen: ${error.message}`);
     },
   });
+
+  // Check if user is admin or super_admin (after all hooks)
+  if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="text-red-800">Zugriff verweigert</CardTitle>
+            <CardDescription className="text-red-600">
+              Sie haben keine Berechtigung, auf die Nutzer-Verwaltung zuzugreifen.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
   // Filter users
   const filteredUsers = users?.filter((u: any) => {

@@ -842,30 +842,48 @@ export async function warnUser(userId: number, adminId: number, reason: string, 
     
     // Update user status and warning count
     const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-    if (user.length > 0) {
-      const newWarningCount = (user[0].warningCount || 0) + 1;
-      await db.update(users)
-        .set({ 
-          status: 'warned' as any,
-          warningCount: newWarningCount,
-        })
-        .where(eq(users.id, userId));
-      
-      console.log("[Database] User warned successfully, count:", newWarningCount);
-      
-      // Log admin action
-      await createAdminLog({
-        adminId,
-        action: 'warn_user',
-        targetType: 'user',
-        targetId: userId,
-        details: JSON.stringify({ reason, message, warningCount: newWarningCount }),
-      });
+    if (user.length === 0) {
+      throw new Error(`User ${userId} not found`);
     }
 
-    // TODO: Insert into warnings table when schema is complete
-    // TODO: Create notification when notifications system is complete
+    const newWarningCount = (user[0].warningCount || 0) + 1;
+    await db.update(users)
+      .set({ 
+        status: 'warned' as any,
+        warningCount: newWarningCount,
+      })
+      .where(eq(users.id, userId));
     
+    console.log("[Database] User warned successfully, count:", newWarningCount);
+    
+    // Insert into warnings table
+    await db.insert(warnings).values({
+      userId,
+      adminId,
+      reason,
+      message,
+      active: true,
+      createdAt: new Date(),
+    });
+    console.log("[Database] Warning record created in warnings table");
+
+    // Create notification for user
+    await createNotification(userId, {
+      type: 'warning',
+      title: 'You have received a warning',
+      message: `Reason: ${reason}. ${message}`,
+      link: '/profile',
+    });
+    console.log("[Database] Warning notification created");
+    
+    // Log admin action
+    await createAdminLog({
+      adminId,
+      action: 'warn_user',
+      targetType: 'user',
+      targetId: userId,
+      details: JSON.stringify({ reason, message, warningCount: newWarningCount }),
+    });
   } catch (error) {
     console.error("[Database] Failed to warn user:", error);
     throw error;
@@ -891,6 +909,26 @@ export async function suspendUser(userId: number, adminId: number, reason: strin
 
     console.log("[Database] User suspended until:", suspendedUntil);
     
+    // Insert into suspensions table
+    await db.insert(suspensions).values({
+      userId,
+      adminId,
+      reason,
+      suspendedAt: new Date(),
+      suspendedUntil,
+      active: true,
+    });
+    console.log("[Database] Suspension record created in suspensions table");
+
+    // Create notification for user
+    await createNotification(userId, {
+      type: 'admin',
+      title: 'Your account has been suspended',
+      message: `Reason: ${reason}. Suspended until ${suspendedUntil.toLocaleDateString('de-DE')}`,
+      link: '/profile',
+    });
+    console.log("[Database] Suspension notification created");
+    
     // Log admin action
     await createAdminLog({
       adminId,
@@ -899,10 +937,6 @@ export async function suspendUser(userId: number, adminId: number, reason: strin
       targetId: userId,
       details: JSON.stringify({ reason, days, suspendedUntil: suspendedUntil.toISOString() }),
     });
-
-    // TODO: Insert into suspensions table when schema is complete
-    // TODO: Create notification when notifications system is complete
-    
   } catch (error) {
     console.error("[Database] Failed to suspend user:", error);
     throw error;
@@ -926,6 +960,24 @@ export async function banUser(userId: number, adminId: number, reason: string) {
 
     console.log("[Database] User banned successfully");
     
+    // Insert into bans table
+    await db.insert(bans).values({
+      userId,
+      adminId,
+      reason,
+      bannedAt: new Date(),
+    });
+    console.log("[Database] Ban record created in bans table");
+
+    // Create notification for user
+    await createNotification(userId, {
+      type: 'admin',
+      title: 'Your account has been permanently banned',
+      message: `Reason: ${reason}. Contact support if you believe this is an error.`,
+      link: '/profile',
+    });
+    console.log("[Database] Ban notification created");
+    
     // Log admin action
     await createAdminLog({
       adminId,
@@ -934,10 +986,6 @@ export async function banUser(userId: number, adminId: number, reason: string) {
       targetId: userId,
       details: JSON.stringify({ reason }),
     });
-
-    // TODO: Insert into bans table when schema is complete
-    // TODO: Create notification when notifications system is complete
-    
   } catch (error) {
     console.error("[Database] Failed to ban user:", error);
     throw error;
