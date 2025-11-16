@@ -1,4 +1,4 @@
-import { eq, desc, and, sql, or, inArray, gte, lt, asc, isNotNull } from "drizzle-orm";
+import { eq, desc, and, sql, or, inArray, gte, lt, asc, isNotNull, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, sellerProfiles, listings, transactions, reviews, warnings, suspensions, bans, adminLogs, systemSettings, notifications, messages, reports, loginAttempts, blockedIPs, offers, User, SellerProfile, Listing, Transaction, Offer, Notification } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -1843,24 +1843,235 @@ export async function getSystemSetting(key: string) {
 
 // ===== SECURITY PLACEHOLDERS (continued) =====
 
-export async function getIPsWithMostAttempts(limit: number) {
-  console.log("[Database] getIPsWithMostAttempts not yet implemented (loginAttempts table)");
-  return [];
+export async function getIPsWithMostAttempts(limit: number = 10) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const result = await db
+      .select({
+        ip: loginAttempts.ip,
+        attemptCount: sql<number>`COUNT(*)`
+      })
+      .from(loginAttempts)
+      .where(eq(loginAttempts.success, false))
+      .groupBy(loginAttempts.ip)
+      .orderBy(desc(sql`COUNT(*)`), desc(loginAttempts.timestamp))
+      .limit(limit);
+
+    console.log(`[Database] Found ${result.length} IPs with most failed attempts`);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get IPs with most attempts:", error);
+    throw error;
+  }
 }
 
 export async function getBlockedIPs() {
-  console.log("[Database] getBlockedIPs not yet implemented (blockedIPs table)");
-  return [];
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const result = await db
+      .select({
+        id: blockedIPs.id,
+        ipAddress: blockedIPs.ip,
+        reason: blockedIPs.reason,
+        blockedAt: blockedIPs.blockedAt,
+        blockedBy: blockedIPs.blockedBy,
+        unblockedAt: blockedIPs.unblockedAt,
+        unblockedBy: blockedIPs.unblockedBy,
+        isActive: sql<boolean>`${blockedIPs.unblockedAt} IS NULL`
+      })
+      .from(blockedIPs)
+      .orderBy(desc(blockedIPs.blockedAt));
+
+    // Join mit users table für blockedBy Namen
+    const enriched = await Promise.all(result.map(async (blocked) => {
+      const admin = await db.select({ name: users.name })
+        .from(users)
+        .where(eq(users.id, blocked.blockedBy))
+        .limit(1);
+      
+      return {
+        ...blocked,
+        blockedByName: admin[0]?.name || "Unknown"
+      };
+    }));
+
+    console.log(`[Database] Found ${enriched.length} blocked IPs (${enriched.filter(b => b.isActive).length} active)`);
+    return enriched;
+  } catch (error) {
+    console.error("[Database] Failed to get blocked IPs:", error);
+    throw error;
+  }
 }
 
 export async function blockIP(ipAddress: string, reason: string, adminId: number) {
-  console.log("[Database] blockIP not yet implemented (blockedIPs table)");
-  return { success: false };
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    // Check if IP already blocked
+    const existing = await db
+      .select()
+      .from(blockedIPs)
+      .where(and(
+        eq(blockedIPs.ip, ipAddress),
+        isNull(blockedIPs.unblockedAt)
+      ))
+      .limit(1);
+
+    if (existing.length > 0) {
+      console.log(`[Database] IP ${ipAddress} is already blocked`);
+      return { success: false, message: "IP already blocked" };
+    }
+
+    // Insert new block
+    await db.insert(blockedIPs).values({
+      ip: ipAddress,
+      reason,
+      blockedBy: adminId,
+      blockedAt: new Date(),
+    });
+
+    // Log admin action
+    await createAdminLog({
+      adminId,
+      action: "block_ip",
+      targetType: "ip",
+      targetId: 0, // IPs haben keine numerische ID als Target
+      details: JSON.stringify({ ipAddress, reason }),
+    });
+
+    console.log(`[Database] IP ${ipAddress} blocked successfully by admin ${adminId}`);
+    return { success: true };
+  } catch (error) {
+    console.error("[Database] Failed to block IP:", error);
+    throw error;
+  }
 }
 
-export async function unblockIP(ipAddress: string) {
-  console.log("[Database] unblockIP not yet implemented (blockedIPs table)");
-  return { success: false };
+export async function unblockIP(ipAddress: string, adminId?: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    // Find active block
+    const existing = await db
+      .select()
+      .from(blockedIPs)
+      .where(and(
+        eq(blockedIPs.ip, ipAddress),
+        isNull(blockedIPs.unblockedAt)
+      ))
+      .limit(1);
+
+    if (existing.length === 0) {
+      console.log(`[Database] IP ${ipAddress} is not currently blocked`);
+      return { success: false, message: "IP not currently blocked" };
+    }
+
+    // Update block with unblock info
+    await db
+      .update(blockedIPs)
+      .set({
+        unblockedAt: new Date(),
+        unblockedBy: adminId || null,
+      })
+      .where(and(
+        eq(blockedIPs.ip, ipAddress),
+        isNull(blockedIPs.unblockedAt)
+      ));
+
+    // Log admin action if adminId provided
+    if (adminId) {
+      await createAdminLog({
+        adminId,
+        action: "unblock_ip",
+        targetType: "ip",
+        targetId: 0,
+        details: JSON.stringify({ ipAddress }),
+      });
+    }
+
+    console.log(`[Database] IP ${ipAddress} unblocked successfully`);
+    return { success: true };
+  } catch (error) {
+    console.error("[Database] Failed to unblock IP:", error);
+    throw error;
+  }
+}
+
+// Check if IP is currently blocked
+export async function isIPBlocked(ipAddress: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false; // Fail open if DB unavailable
+
+  try {
+    const result = await db
+      .select()
+      .from(blockedIPs)
+      .where(and(
+        eq(blockedIPs.ip, ipAddress),
+        isNull(blockedIPs.unblockedAt)
+      ))
+      .limit(1);
+
+    return result.length > 0;
+  } catch (error) {
+    console.error("[Database] Failed to check if IP is blocked:", error);
+    return false; // Fail open
+  }
+}
+
+// Track login attempt
+export async function trackLoginAttempt(
+  ip: string,
+  userId: number | null,
+  userAgent: string | undefined,
+  success: boolean
+): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot track login attempt: database not available");
+    return;
+  }
+
+  try {
+    await db.insert(loginAttempts).values({
+      ip,
+      userId,
+      userAgent,
+      success,
+      timestamp: new Date(),
+    });
+
+    console.log(`[Database] Login attempt tracked: IP=${ip}, success=${success}`);
+
+    // Check for auto-block (5 failed attempts in last 15 minutes)
+    if (!success) {
+      const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+      const recentFailures = await db
+        .select()
+        .from(loginAttempts)
+        .where(and(
+          eq(loginAttempts.ip, ip),
+          eq(loginAttempts.success, false),
+          gte(loginAttempts.timestamp, fifteenMinutesAgo)
+        ));
+
+      if (recentFailures.length >= 5) {
+        const alreadyBlocked = await isIPBlocked(ip);
+        if (!alreadyBlocked) {
+          await blockIP(ip, `Auto-blocked: ${recentFailures.length} failed login attempts`, 0); // 0 = system
+          console.warn(`[Security] Auto-blocked IP ${ip} after ${recentFailures.length} failed attempts`);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("[Database] Failed to track login attempt:", error);
+  }
 }
 
 

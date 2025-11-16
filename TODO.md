@@ -91,11 +91,33 @@ Benachrichtigungs-Frontend abgeschlossen (Seite + Bell).
 4. OfferManagement UI Interaktionen (E2E)
 
 ### Security Hardening TODO:
-- Rate Limiting (express-rate-limit)
-- Helmet Security Headers
-- Body Size Limit reduzieren (<10MB)
+
+#### KRITISCH - IP-Blocking (Nicht funktionsfähig)
+- ❌ **IP-Blocking Funktionen implementieren** (db.ts Zeilen 1847-1866 sind Platzhalter)
+  - blockIP(): INSERT INTO blockedIPs mit reason und adminId
+  - unblockIP(): UPDATE blockedIPs SET unblockedAt, unblockedBy
+  - getBlockedIPs(): SELECT from blockedIPs WHERE unblockedAt IS NULL
+  - getIPsWithMostAttempts(): Query loginAttempts gruppiert nach IP
+- ❌ **IP-Blocking Middleware** - Check incoming IP against blockedIPs table
+- ❌ **Login-Attempt-Tracking** - INSERT INTO loginAttempts bei jedem Login-Versuch
+- ❌ **Auto-Block nach X failed attempts** (via systemSettings konfigurierbar)
+
+#### KRITISCH - Security-Middleware (Komplett fehlend)
+- ❌ **helmet** - Security Headers (CSP, HSTS, X-Frame-Options, etc.)
+- ❌ **cors** - Cross-Origin Configuration
+- ❌ **express-rate-limit** - Globales Rate Limiting (z.B. 100 req/15min per IP)
+- ❌ **Rate Limiting für Login-Endpoints** (5 attempts/15min)
+- ❌ **IP-Extraktion Middleware** - X-Forwarded-For Header Parsing
+
+#### HOCH - Auth/Session Risiken
+- ⚠️ **Dev-Login Endpoints** - Sicherstellen DEV_LOGIN_ENABLED=false in Production
+- ⚠️ **Session-Expiry zu lang** - ONE_YEAR_MS (31.5M ms = 1 Jahr) → 7-14 Tage empfohlen
+- ⚠️ **Refresh-Token Pattern** erwägen für bessere Security
+
+#### MITTEL - Weitere Hardening-Maßnahmen
+- Body Size Limit reduzieren (aktuell 50MB → <10MB empfohlen)
 - CSRF Schutz (Double Submit Token oder Origin Check)
-- Einheitliches Error Mapping (keine raw stack traces)
+- Einheitliches Error Mapping (keine raw stack traces in Production)
 
 ### Performance TODO:
 - Query Optimierung (JOIN Vorab-Ladung für Listing Karten)

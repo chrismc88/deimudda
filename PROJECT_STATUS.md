@@ -50,11 +50,17 @@
 - ⏳ **OAuth Provider Integration** - Manus oder Keycloak/Auth0
 - ⏳ **PayPal Live-Testing** - Mit echten Sandbox-Credentials
 - ⏳ **Production Security Hardening:**
-  - Rate Limiting (Express-Rate-Limit)
-  - Security Headers (Helmet)
-  - CSRF Protection
-  - Request Size Limits (aktuell 50MB, zu hoch)
-  - Error Message Masking (aktuell Stack Traces in Dev)
+  - ❌ **IP-Blocking NICHT FUNKTIONSFÄHIG** (Schema ✅, DB-Funktionen ❌ Platzhalter, UI ✅)
+  - ❌ **Login-Attempt-Tracking** nicht implementiert (Tabelle existiert, wird nicht genutzt)
+  - ❌ Rate Limiting (express-rate-limit) - Komplett fehlend
+  - ❌ Security Headers (helmet) - Nicht installiert
+  - ❌ CORS Configuration - Nicht konfiguriert
+  - ❌ IP-Middleware - Keine X-Forwarded-For Extraktion
+  - ⚠️ Dev-Login Endpoints - Aktiv per Flag (DEV_LOGIN_ENABLED), muss in Prod disabled sein
+  - ⚠️ Session-Expiry zu lang (ONE_YEAR_MS = 1 Jahr) - 7-14 Tage empfohlen
+  - ⚠️ Request Size Limits (aktuell 50MB, zu hoch → <10MB)
+  - ⚠️ CSRF Protection - Fehlend
+  - ⚠️ Error Message Masking (aktuell Stack Traces in Dev)
 
 ### 2. Testing & QA
 - ⏳ **E2E Tests** - Playwright/Cypress Setup
