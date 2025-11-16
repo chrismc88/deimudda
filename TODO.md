@@ -1,18 +1,16 @@
 # Deimudda - Entwicklungs-Status & Roadmap
 
-**Stand:** 15. November 2025  
-**Projekt-Fortschritt:** ~80% COMPLETE 🎯  
-**Nächste Priorität:** Messages & Notifications Frontend
+**Stand:** 16. November 2025  
+**Projekt-Fortschritt:** ~95% COMPLETE 🎯  
+**Nächste Priorität:** Tests & Polish
 
 ---
 
 ## 🚨 KRITISCH - Sofort beheben
 
-### Header Compilation Error (5 Minuten)
-- ❌ `Header.tsx` hat TypeScript-Fehler
-  - Import von `NotificationBell` fehlt (Modul existiert nicht)
-  - Import von `MessageIcon` fehlt (Modul existiert nicht)
-  - **Fix:** Imports temporär entfernen, Platzhalter einfügen
+### Tests & Polish
+- Tests für Offers & systemSettings ergänzen
+- Settings sicher seeden, Fallbacks reduzieren
 
 ---
 
@@ -22,7 +20,7 @@
 - ✅ Express + tRPC Server Setup
 - ✅ MySQL Database mit Drizzle ORM
 - ✅ JWT Session Management
-**Nächste Priorität:** OfferManagement Page + OAuth + PayPal Sandbox
+**Nächste Priorität:** Tests für Offers & Settings, Polish, Doku-Abgleich
 - ✅ Vite Dev-Server Integration
 ## 🚨 KRITISCH
 - Keine akuten Compile-Fehler offen
@@ -30,13 +28,13 @@
 - ✅ `listings` - Anzeigen/Listings
 ### Frontend Pages Status:
 - ✅ `Messages` / `ChatWindow` / `Notifications` implementiert
-- ❌ `OfferManagement` (Neuaufbau geplant)
+- ✅ `OfferManagement` (Angebotsverwaltung) implementiert und aktiv
 - ✅ `warnings` - Verwarnungen
 ### Frontend Components:
 - ✅ `Header` / `MessageIcon` / `NotificationBell` integriert
 - ✅ `blockedIPs` - IP-Sperren
 ## 🔄 Aktuelle Phase: Abschluss & Hardening
-Messaging + Notifications abgeschlossen (Backend + Frontend). Nächste Schritte fokussieren sich auf fehlende Seite, Auth, Payments & Quality.
+Messaging + Notifications abgeschlossen (Backend + Frontend). Angebotsverwaltung (OfferManagement) ist aktiv und zeigt alle relevanten Angebote. Nächste Schritte: Tests ergänzen, Settings seeden, Polish, Doku-Abgleich.
 - ✅ `systemSettings` - System-Einstellungen
 #### OfferManagement Neuaufbau (Geplant)
 - Seite Layout + Listing Offer Übersicht
@@ -67,13 +65,10 @@ Benachrichtigungs-Frontend abgeschlossen (Seite + Bell).
 - ✅ `getAllTransactions` - Transaktions-Übersicht
 - ✅ `getAllListings` - Alle Listings für Moderation
 ### Was noch fehlt:
-- ✅ `getSystemSettings/updateSystemSettings` - System-Config
-- ✅ `getAnalytics` - Business Analytics
-### Admin-/Messaging-/Notification Integration
-- ✅ IP-Blocking-System
-**Backup-Recovery Effizienz:** Mehrere Wochen Entwicklungszeit eingespart 🎉
-- ✅ Security-Logging
-- ✅ System-Settings-Management
+- Tests für Offers & Settings
+- Settings sind vollständig per Migration abgedeckt (drizzle/*.sql)
+- Fallbacks im Code sind minimal und dienen nur als Backup
+- Polish & Doku-Abgleich
 
 ### Development URLs:
 - ✅ Test-Admin Auto-Creation (`admin@test.com`)

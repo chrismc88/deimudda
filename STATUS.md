@@ -10,18 +10,16 @@ Kurzer, aktueller Überblick über Features, Roadmap und offene Punkte.
 ## Features
 | Bereich | Status | Notizen |
 |---|---|---|
-| Angebote | Aktiv | Counter/Accept inkl. Fees; `reduceListingQuantity` fehlt |
+| Angebote | Aktiv | Counter/Accept inkl. Fees; Angebotsverwaltung (OfferManagement) aktiv |
 | Listings | Aktiv | Aktivieren/Deaktivieren; Auto-Status bei Ausverkauf |
 | Messaging | Aktiv | 1:1 Chat, Unread Counter |
 | Notifications | Aktiv | Offer-/System-Events, Bell + Fallback-Navigation |
 | Admin | Aktiv | User/Listing/Security/Reports/Settings |
 
-## Roadmap (6–8 Wochen)
-1) Offer-Flow härten: `reduceListingQuantity` in `acceptOffer` integrieren
-2) Tests ergänzen (Offers + `systemSettings`), Vitest laufen lassen
-3) Settings sicher seeden (neue Drizzle-Migrationen), Fallbacks reduzieren
-4) Offer-Notifications ausbauen (neu/akzeptiert)
-5) `OfferManagement` Seite neu erstellen und verknüpfen
+| Roadmap (6–8 Wochen)
+1) Tests ergänzen (Offers + `systemSettings`), Vitest laufen lassen
+2) Settings sicher seeden (neue Drizzle-Migrationen), Fallbacks reduzieren
+3) Polish & Doku-Abgleich
 
 ## Known Issues
 - Fehlende Settings können Fallbacks triggern → Migrationen ergänzen
