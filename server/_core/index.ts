@@ -167,17 +167,18 @@ async function startServer() {
       // Session-Token mit Rollen-Claim ausstellen
       const finalUser = await db.getUserByOpenId(openId);
       const userRole = finalUser?.role || (isAdmin ? "admin" : "user");
+      const sessionLifetime = await db.getSessionLifetimeMs();
       
       const token = await sdk.createSessionToken(openId, {
         name,
         roles: [userRole],
-        expiresInMs: ONE_YEAR_MS,
+        expiresInMs: sessionLifetime,
       });
 
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, token, {
         ...cookieOptions,
-        maxAge: ONE_YEAR_MS,
+        maxAge: sessionLifetime,
       });
       
       // Track successful login attempt
@@ -216,16 +217,17 @@ async function startServer() {
         }
 
         // Create session token with admin role
+        const sessionLifetime = await db.getSessionLifetimeMs();
         const token = await sdk.createSessionToken(user.openId, {
           name: user.name,
           roles: [user.role],
-          expiresInMs: ONE_YEAR_MS,
+          expiresInMs: sessionLifetime,
         });
 
         const cookieOptions = getSessionCookieOptions(req);
         res.cookie(COOKIE_NAME, token, {
           ...cookieOptions,
-          maxAge: ONE_YEAR_MS,
+          maxAge: sessionLifetime,
         });
         
         // Track successful login

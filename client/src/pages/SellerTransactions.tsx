@@ -13,7 +13,12 @@ export default function SellerTransactions() {
   const { user } = useAuth();
   const { data: transactions, isLoading, error } = trpc.transaction.getSellerTransactions.useQuery(undefined, { staleTime: 60000 });
   const { data: platformFeeStr } = trpc.admin.getSystemSetting.useQuery('platform_fee_fixed', { staleTime: 300000 }); // 5min cache
+  const { data: paypalFeePercentageStr } = trpc.admin.getSystemSetting.useQuery('paypal_fee_percentage', { staleTime: 300000 });
+  const { data: paypalFeeFixedStr } = trpc.admin.getSystemSetting.useQuery('paypal_fee_fixed', { staleTime: 300000 });
+  
   const PLATFORM_FEE = parseFloat(platformFeeStr || "0.42");
+  const paypalPercentage = parseFloat(paypalFeePercentageStr || "2.49") / 100; // Convert to decimal
+  const paypalFixed = parseFloat(paypalFeeFixedStr || "0.49");
 
   // Calculate statistics
   const totalSales = transactions?.length || 0;
@@ -93,7 +98,7 @@ export default function SellerTransactions() {
         <Alert className="mb-6">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Gebühren-Struktur:</strong> PayPal-Gebühren (2,49% + €0.49) + Plattform-Gebühr (€{PLATFORM_FEE.toFixed(2)}) werden automatisch bei Online-Zahlungen abgezogen. 
+            <strong>Gebühren-Struktur:</strong> PayPal-Gebühren ({(paypalPercentage * 100).toFixed(2)}% + €{paypalFixed.toFixed(2)}) + Plattform-Gebühr (€{PLATFORM_FEE.toFixed(2)}) werden automatisch bei Online-Zahlungen abgezogen. 
             Bei Offline-Zahlungen wird die Plattform-Gebühr monatlich abgerechnet.
           </AlertDescription>
         </Alert>

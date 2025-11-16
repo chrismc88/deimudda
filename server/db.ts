@@ -1,4 +1,4 @@
-import { eq, desc, and, sql, or, inArray, gte, lt, asc, isNotNull, isNull } from "drizzle-orm";
+import { eq, desc, and, sql, or, inArray, gte, lt, asc, isNotNull, isNull, count } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, sellerProfiles, listings, transactions, reviews, warnings, suspensions, bans, adminLogs, systemSettings, notifications, messages, reports, loginAttempts, blockedIPs, offers, User, SellerProfile, Listing, Transaction, Offer, Notification } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -151,6 +151,49 @@ export async function createOffer(input: CreateOfferInput): Promise<number | und
   const db = await getDb();
   if (!db) return undefined;
   try {
+    // === VALIDATION: System Settings Limits ===
+    
+    // 1. Check minimum offer amount
+    const minAmountRaw = await _getSystemSettingFn('min_offer_amount');
+    const minAmount = minAmountRaw ? parseFloat(minAmountRaw) : 1.00;
+    if (input.offerAmount < minAmount) {
+      throw new Error(`Angebot muss mindestens ${minAmount.toFixed(2)}€ betragen`);
+    }
+    
+    // 2. Check max offers per user (buyer)
+    const maxOffersPerUserRaw = await _getSystemSettingFn('max_offers_per_user');
+    const maxOffersPerUser = maxOffersPerUserRaw ? parseInt(maxOffersPerUserRaw, 10) : 20;
+    const [userOfferCount] = await db
+      .select({ count: count() })
+      .from(offers)
+      .where(
+        and(
+          eq(offers.buyerId, input.buyerId),
+          eq(offers.status, 'pending')
+        )
+      );
+    if ((userOfferCount?.count ?? 0) >= maxOffersPerUser) {
+      throw new Error(`Sie haben bereits ${maxOffersPerUser} aktive Angebote. Bitte warten Sie, bis einige beantwortet wurden.`);
+    }
+    
+    // 3. Check max offers per listing
+    const maxOffersPerListingRaw = await _getSystemSettingFn('max_offers_per_listing');
+    const maxOffersPerListing = maxOffersPerListingRaw ? parseInt(maxOffersPerListingRaw, 10) : 10;
+    const [listingOfferCount] = await db
+      .select({ count: count() })
+      .from(offers)
+      .where(
+        and(
+          eq(offers.listingId, input.listingId),
+          eq(offers.status, 'pending')
+        )
+      );
+    if ((listingOfferCount?.count ?? 0) >= maxOffersPerListing) {
+      throw new Error(`Dieses Listing hat bereits die maximale Anzahl von ${maxOffersPerListing} aktiven Angeboten erreicht.`);
+    }
+    
+    // === OFFER CREATION ===
+    
     // Ensure dynamic expiration: if not provided, read system setting offer_expiration_days (default 7)
     if (!input.expiresAt) {
       const daysRaw = await _getSystemSettingFn('offer_expiration_days');
@@ -1887,6 +1930,17 @@ export async function getSystemSetting(key: string) {
     console.error("[Database] Failed to get system setting:", error);
     return null;
   }
+}
+
+/**
+ * Get session lifetime in milliseconds from system settings
+ * @returns Session lifetime in MS (default: 14 days = 1209600000 ms)
+ */
+export async function getSessionLifetimeMs(): Promise<number> {
+  const daysRaw = await getSystemSetting('session_lifetime_days');
+  const days = daysRaw ? parseInt(daysRaw, 10) : 14;
+  const validDays = isNaN(days) || days < 1 ? 14 : days;
+  return validDays * 24 * 60 * 60 * 1000; // Convert days to milliseconds
 }
 
 // ===== SECURITY PLACEHOLDERS (continued) =====
