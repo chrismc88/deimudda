@@ -86,6 +86,15 @@ async function startServer() {
     message: "Too many requests from this IP, please try again later.",
     standardHeaders: true,
     legacyHeaders: false,
+    // Skip rate limiting for Vite dev assets
+    skip: (req) => {
+      const path = req.path;
+      return path.startsWith("/src/") || 
+             path.startsWith("/@fs/") || 
+             path.startsWith("/@vite/") ||
+             path.startsWith("/@id/") ||
+             path.startsWith("/node_modules/");
+    },
   });
   app.use(globalLimiter);
 
