@@ -788,12 +788,21 @@ export const appRouter = router({
         maintenanceMode: z.boolean(),
         userRegistrationEnabled: z.boolean(),
         listingApprovalRequired: z.boolean(),
-        maxListingImages: z.number().min(1).max(20),
-        sessionTimeoutMinutes: z.number().min(15).max(480),
       }))
       .mutation(async ({ input, ctx }) => {
-        // Here you would save to database - for now just return success
-        console.log("[Admin] System settings updated by", ctx.user.name, input);
+        await Promise.all([
+          db.updateSystemSetting("site_name", input.siteName, ctx.user.id),
+          db.updateSystemSetting("site_description", input.siteDescription, ctx.user.id),
+          db.updateSystemSetting("admin_email", input.adminEmail, ctx.user.id),
+          db.updateSystemSetting("maintenance_mode", input.maintenanceMode ? "true" : "false", ctx.user.id),
+          db.updateSystemSetting("registration_enabled", input.userRegistrationEnabled ? "true" : "false", ctx.user.id),
+          db.updateSystemSetting("require_listing_approval", input.listingApprovalRequired ? "true" : "false", ctx.user.id),
+        ]);
+
+        console.log("[Admin] System settings updated by", ctx.user.name, {
+          siteName: input.siteName,
+          maintenanceMode: input.maintenanceMode,
+        });
         return { success: true };
       }),
   }),

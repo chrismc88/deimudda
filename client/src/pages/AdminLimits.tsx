@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../_core/hooks/useAuth";
 import { trpc } from "../lib/trpc";
 import AdminNav from "./AdminNav";
@@ -49,14 +49,37 @@ export default function AdminLimits() {
     }
   });
 
-  // Initialize
-  if (maxOffersPerListingStr && !maxOffersPerListing) setMaxOffersPerListing(maxOffersPerListingStr);
-  if (maxOffersPerUserStr && !maxOffersPerUser) setMaxOffersPerUser(maxOffersPerUserStr);
-  if (minOfferAmountStr && !minOfferAmount) setMinOfferAmount(minOfferAmountStr);
-  if (maxImagesStr && !maxImages) setMaxImages(maxImagesStr);
-  if (maxImageSizeStr && !maxImageSize) setMaxImageSize(maxImageSizeStr);
-  if (maxListingPriceStr && !maxListingPrice) setMaxListingPrice(maxListingPriceStr);
-  if (minSellerRatingStr && !minSellerRating) setMinSellerRating(minSellerRatingStr);
+  const [initialized, setInitialized] = useState(false);
+  useEffect(() => {
+    if (initialized) return;
+    const pendingFields = [
+      maxOffersPerListingStr,
+      maxOffersPerUserStr,
+      minOfferAmountStr,
+      maxImagesStr,
+      maxImageSizeStr,
+      maxListingPriceStr,
+      minSellerRatingStr,
+    ];
+    if (pendingFields.some((value) => value === undefined)) return;
+    setMaxOffersPerListing(maxOffersPerListingStr || "");
+    setMaxOffersPerUser(maxOffersPerUserStr || "");
+    setMinOfferAmount(minOfferAmountStr || "");
+    setMaxImages(maxImagesStr || "");
+    setMaxImageSize(maxImageSizeStr || "");
+    setMaxListingPrice(maxListingPriceStr || "");
+    setMinSellerRating(minSellerRatingStr || "");
+    setInitialized(true);
+  }, [
+    initialized,
+    maxOffersPerListingStr,
+    maxOffersPerUserStr,
+    minOfferAmountStr,
+    maxImagesStr,
+    maxImageSizeStr,
+    maxListingPriceStr,
+    minSellerRatingStr,
+  ]);
 
   const handleSave = async (key: string, raw: string, type: 'int'|'float') => {
     const parsed = type === 'int' ? parseInt(raw) : parseFloat(raw);

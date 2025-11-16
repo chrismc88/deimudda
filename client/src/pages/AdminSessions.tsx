@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../_core/hooks/useAuth";
 import { trpc } from "../lib/trpc";
 import AdminNav from "./AdminNav";
@@ -44,11 +44,18 @@ export default function AdminSessions() {
     }
   });
 
-  if (sessionDaysStr && !sessionDays) setSessionDays(sessionDaysStr);
-  if (ipBlockHoursStr && !ipBlockHours) setIpBlockHours(ipBlockHoursStr);
-  if (maxAttemptsStr && !maxAttempts) setMaxAttempts(maxAttemptsStr);
-  if (suspiciousStr && !suspicious) setSuspicious(suspiciousStr);
-  if (notifRetentionStr && !notifRetention) setNotifRetention(notifRetentionStr);
+  const [initialized, setInitialized] = useState(false);
+  useEffect(() => {
+    if (initialized) return;
+    const data = [sessionDaysStr, ipBlockHoursStr, maxAttemptsStr, suspiciousStr, notifRetentionStr];
+    if (data.some((value) => value === undefined)) return;
+    setSessionDays(sessionDaysStr || "");
+    setIpBlockHours(ipBlockHoursStr || "");
+    setMaxAttempts(maxAttemptsStr || "");
+    setSuspicious(suspiciousStr || "");
+    setNotifRetention(notifRetentionStr || "");
+    setInitialized(true);
+  }, [initialized, sessionDaysStr, ipBlockHoursStr, maxAttemptsStr, suspiciousStr, notifRetentionStr]);
 
   const handleSave = (key: string, raw: string) => {
     const parsed = parseInt(raw);

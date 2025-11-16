@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../_core/hooks/useAuth";
 import { trpc } from "../lib/trpc";
 import AdminNav from "./AdminNav";
@@ -9,13 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../components/ui/select";
 import {
   Form,
   FormControl,
@@ -29,8 +22,7 @@ import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Badge } from "../components/ui/badge";
-import { Separator } from "../components/ui/separator";
-import { Settings, Save, RefreshCw, Shield, DollarSign, Clock, Users } from "lucide-react";
+import { Settings, Save, RefreshCw, Shield, Users } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -43,8 +35,6 @@ const systemSettingsSchema = z.object({
   maintenanceMode: z.boolean(),
   userRegistrationEnabled: z.boolean(),
   listingApprovalRequired: z.boolean(),
-  maxListingImages: z.number().min(1).max(20),
-  sessionTimeoutMinutes: z.number().min(15).max(480),
 });
 
 type SystemSettings = z.infer<typeof systemSettingsSchema>;
@@ -65,7 +55,7 @@ export default function AdminSettings() {
     },
   });
 
-  const form = useForm({
+  const form = useForm<SystemSettings>({
     // resolver: zodResolver(systemSettingsSchema),
     defaultValues: {
       siteName: "deimudda",
@@ -74,12 +64,27 @@ export default function AdminSettings() {
       maintenanceMode: false,
       userRegistrationEnabled: true,
       listingApprovalRequired: false,
-      maxListingImages: 10,
-      sessionTimeoutMinutes: 120,
     },
   });
 
-  const onSubmit = (data: any) => {
+  useEffect(() => {
+    if (!settings) return;
+    const lookup: Record<string, string> = {};
+    settings.forEach((setting) => {
+      lookup[setting.key] = setting.value;
+    });
+
+    form.reset({
+      siteName: lookup["site_name"] ?? "deimudda",
+      siteDescription: lookup["site_description"] ?? "Premium Cannabis Genetics Marketplace",
+      adminEmail: lookup["admin_email"] ?? "admin@deimudda.de",
+      maintenanceMode: (lookup["maintenance_mode"] ?? "false") === "true",
+      userRegistrationEnabled: (lookup["registration_enabled"] ?? "true") === "true",
+      listingApprovalRequired: (lookup["require_listing_approval"] ?? "false") === "true",
+    });
+  }, [settings, form]);
+
+  const onSubmit = (data: SystemSettings) => {
     updateSettingsMutation.mutate(data);
   };
 
@@ -123,7 +128,6 @@ export default function AdminSettings() {
   const tabs = [
     { id: "general", label: "General", icon: Settings },
     { id: "security", label: "Security", icon: Shield },
-    { id: "limits", label: "Limits & Timeouts", icon: Clock },
     { id: "users", label: "User Settings", icon: Users },
   ];
 
@@ -246,10 +250,10 @@ export default function AdminSettings() {
                     <CardHeader>
                       <CardTitle>Security & Access Control</CardTitle>
                       <CardDescription>
-                        Configure security settings and access controls
+                        Configure maintenance mode and other global restrictions
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent>
                       <FormField
                         control={form.control}
                         name="maintenanceMode"
@@ -267,12 +271,24 @@ export default function AdminSettings() {
                               <FormLabel className="!mb-0">Maintenance Mode</FormLabel>
                             </div>
                             <FormDescription>
-                              When enabled, only admins can access the platform
+                              Enable to restrict access to admins only during maintenance windows.
                             </FormDescription>
                           </FormItem>
                         )}
                       />
-
+                    </CardContent>
+                  </Card>
+                )}
+                {/* User Settings */}
+                {activeTab === "users" && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>User Management Settings</CardTitle>
+                      <CardDescription>
+                        Configure user behavior and approval processes
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
                       <FormField
                         control={form.control}
                         name="userRegistrationEnabled"
@@ -295,81 +311,6 @@ export default function AdminSettings() {
                           </FormItem>
                         )}
                       />
-
-                      <FormField
-                        control={form.control}
-                        name="sessionTimeoutMinutes"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Session Timeout (Minutes)</FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                type="number"
-                                min="15"
-                                max="480"
-                                onChange={(e) => field.onChange(parseInt(e.target.value))}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              How long before users are automatically logged out (15-480 minutes)
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Commerce Settings removed - handled by dedicated AdminFees page */}
-
-                {/* Limits & Timeouts */}
-                {activeTab === "limits" && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Platform Limits & Restrictions</CardTitle>
-                      <CardDescription>
-                        Configure upload limits and content restrictions
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="maxListingImages"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Maximum Listing Images</FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                type="number"
-                                min="1"
-                                max="20"
-                                onChange={(e) => field.onChange(parseInt(e.target.value))}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Maximum number of images per listing (1-20)
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* User Settings */}
-                {activeTab === "users" && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>User Management Settings</CardTitle>
-                      <CardDescription>
-                        Configure user behavior and approval processes
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
                       <FormField
                         control={form.control}
                         name="listingApprovalRequired"

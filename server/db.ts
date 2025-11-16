@@ -1562,6 +1562,14 @@ const SYSTEM_SETTING_DEFAULTS: Record<string, SystemSettingMeta> = {
     category: "features",
     description: "Enable the rating and review system",
   },
+  site_description: {
+    category: "branding",
+    description: "Long form site description for SEO/snippets",
+  },
+  admin_email: {
+    category: "general",
+    description: "Primary contact email for admins",
+  },
   image_max_size_mb: {
     category: "limits",
     description: "Maximum image size in megabytes",
@@ -1585,14 +1593,6 @@ const SYSTEM_SETTING_DEFAULTS: Record<string, SystemSettingMeta> = {
   max_active_listings_per_user: {
     category: "limits",
     description: "Maximum active listings a user can have",
-  },
-  max_image_size_mb: {
-    category: "limits",
-    description: "Maximum image upload size in megabytes",
-  },
-  max_images_per_listing: {
-    category: "limits",
-    description: "Maximum number of images per listing",
   },
   max_listing_images: {
     category: "limits",
@@ -1720,6 +1720,23 @@ const SYSTEM_SETTING_DEFAULTS: Record<string, SystemSettingMeta> = {
   },
 };
 
+const SYSTEM_SETTING_ALIASES: Record<string, string> = {
+  max_images_per_listing: "max_listing_images",
+  max_image_size_mb: "image_max_size_mb",
+};
+
+const REVERSE_SETTING_ALIASES: Record<string, string[]> = Object.entries(
+  SYSTEM_SETTING_ALIASES,
+).reduce((acc, [legacy, canonical]) => {
+  (acc[canonical] ??= []).push(legacy);
+  return acc;
+}, {} as Record<string, string[]>);
+
+const resolveSettingKey = (key: string) => SYSTEM_SETTING_ALIASES[key] ?? key;
+
+const getAliasCandidates = (canonicalKey: string) =>
+  REVERSE_SETTING_ALIASES[canonicalKey] ?? [];
+
 const getSystemSettingDefaults = (key: string): SystemSettingMeta => {
   return SYSTEM_SETTING_DEFAULTS[key] ?? { category: "general", description: null };
 };
@@ -1729,11 +1746,12 @@ export async function updateSystemSetting(key: string, value: string, adminId: n
   if (!db) throw new Error("Database not available");
 
   try {
-    const metadata = getSystemSettingDefaults(key);
+    const canonicalKey = resolveSettingKey(key);
+    const metadata = getSystemSettingDefaults(canonicalKey);
 
     await db.insert(systemSettings)
       .values({
-        key,
+        key: canonicalKey,
         value,
         category: metadata.category,
         description: metadata.description,
@@ -1747,7 +1765,7 @@ export async function updateSystemSetting(key: string, value: string, adminId: n
         },
       });
 
-    console.log("[Database] System setting upserted:", key, value);
+    console.log("[Database] System setting upserted:", canonicalKey, value);
   } catch (error) {
     console.error("[Database] Failed to update system setting:", error);
     throw error;
@@ -2157,11 +2175,54 @@ export async function getSystemSetting(key: string) {
   if (!db) return null;
 
   try {
-    const setting = await db.select().from(systemSettings)
-      .where(eq(systemSettings.key, key))
-      .limit(1);
-    
-    return setting.length > 0 ? setting[0].value : null;
+    const canonicalKey = resolveSettingKey(key);
+
+    const fetchSetting = async (candidateKey: string) => {
+      const result = await db
+        .select()
+        .from(systemSettings)
+        .where(eq(systemSettings.key, candidateKey))
+        .limit(1);
+      return result.length > 0 ? result[0] : null;
+    };
+
+    const direct = await fetchSetting(canonicalKey);
+    if (direct) {
+      return direct.value;
+    }
+
+    const fallbackKeys = Array.from(
+      new Set([
+        ...(canonicalKey !== key ? [key] : []),
+        ...getAliasCandidates(canonicalKey),
+      ]),
+    );
+
+    for (const fallbackKey of fallbackKeys) {
+      const fallback = await fetchSetting(fallbackKey);
+      if (fallback) {
+        const metadata = getSystemSettingDefaults(canonicalKey);
+        await db
+          .insert(systemSettings)
+          .values({
+            key: canonicalKey,
+            value: fallback.value,
+            category: metadata.category,
+            description: metadata.description,
+            updatedBy: fallback.updatedBy ?? null,
+          })
+          .onDuplicateKeyUpdate({
+            set: {
+              value: fallback.value,
+              updatedAt: new Date(),
+              updatedBy: fallback.updatedBy ?? null,
+            },
+          });
+        return fallback.value;
+      }
+    }
+
+    return null;
   } catch (error) {
     console.error("[Database] Failed to get system setting:", error);
     return null;
@@ -2404,10 +2465,21 @@ export async function trackLoginAttempt(
 
     console.log(`[Database] Login attempt tracked: ${ip} - ${success ? 'success' : 'failed'}`);
 
+    const parseSettingInt = async (settingKey: string, fallback: number) => {
+      const raw = await getSystemSetting(settingKey);
+      if (!raw) return fallback;
+      const parsed = parseInt(raw, 10);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    };
+
+    const baseMaxRaw = await getSystemSetting('max_login_attempts');
+    const baseMax = baseMaxRaw ? parseInt(baseMaxRaw, 10) : 5;
+    const ipThreshold = await parseSettingInt('max_login_attempts_per_ip', baseMax);
+    const userThreshold = await parseSettingInt('max_login_attempts_per_user', 0);
+    const suspiciousThreshold = await parseSettingInt('suspicious_activity_threshold', 0);
+
     // Auto-block after threshold
     if (!success) {
-      const maxAttemptsRaw = await getSystemSetting('max_login_attempts');
-      const maxAttempts = maxAttemptsRaw ? parseInt(maxAttemptsRaw, 10) : 5;
       const recentAttempts = await db
         .select()
         .from(loginAttempts)
@@ -2419,9 +2491,56 @@ export async function trackLoginAttempt(
           )
         );
 
-      if (recentAttempts.length >= maxAttempts) {
-        console.log(`[Database] Auto-blocking IP ${ip} after ${recentAttempts.length} failed attempts (threshold ${maxAttempts})`);
+      if (recentAttempts.length >= ipThreshold) {
+        console.log(`[Database] Auto-blocking IP ${ip} after ${recentAttempts.length} failed attempts (threshold ${ipThreshold})`);
         await blockIP(ip, `Auto-blocked: ${recentAttempts.length} failed login attempts in 15 minutes`, 1);
+      }
+
+      if (userId && userThreshold > 0) {
+        const userAttempts = await db
+          .select()
+          .from(loginAttempts)
+          .where(
+            and(
+              eq(loginAttempts.userId, userId),
+              eq(loginAttempts.success, false),
+              sql`${loginAttempts.timestamp} > DATE_SUB(NOW(), INTERVAL 15 MINUTE)`
+            )
+          );
+
+        if (userAttempts.length >= userThreshold) {
+          await createAdminLog({
+            adminId: 1,
+            action: "user_login_threshold",
+            targetType: "user",
+            targetId: userId,
+            details: JSON.stringify({
+              attempts: userAttempts.length,
+              threshold: userThreshold,
+            }),
+          });
+        }
+      }
+    }
+
+    if (suspiciousThreshold > 0) {
+      const rapidAttempts = await db
+        .select()
+        .from(loginAttempts)
+        .where(
+          and(
+            eq(loginAttempts.ip, ip),
+            sql`${loginAttempts.timestamp} > DATE_SUB(NOW(), INTERVAL 1 MINUTE)`
+          )
+        );
+
+      if (rapidAttempts.length >= suspiciousThreshold) {
+        console.warn(`[Security] IP ${ip} exceeded suspicious activity threshold (${rapidAttempts.length}/${suspiciousThreshold})`);
+        await blockIP(
+          ip,
+          `Auto-blocked: ${rapidAttempts.length} actions in 60 seconds (threshold ${suspiciousThreshold})`,
+          1
+        );
       }
     }
   } catch (error) {

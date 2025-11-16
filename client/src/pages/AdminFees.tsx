@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../_core/hooks/useAuth";
 import { trpc } from "../lib/trpc";
 import AdminNav from "./AdminNav";
@@ -46,9 +46,17 @@ export default function AdminFees() {
   });
   
   // Initialize form values when data loads
-  if (platformFeeStr && !platformFee) setPlatformFee(platformFeeStr);
-  if (paypalPercStr && !paypalPerc) setPaypalPerc(paypalPercStr);
-  if (paypalFixedStr && !paypalFixed) setPaypalFixed(paypalFixedStr);
+  const [initialized, setInitialized] = useState(false);
+  useEffect(() => {
+    if (initialized) return;
+    if (platformFeeStr === undefined || paypalPercStr === undefined || paypalFixedStr === undefined) {
+      return;
+    }
+    setPlatformFee(platformFeeStr || "");
+    setPaypalPerc(paypalPercStr || "");
+    setPaypalFixed(paypalFixedStr || "");
+    setInitialized(true);
+  }, [initialized, platformFeeStr, paypalPercStr, paypalFixedStr]);
   
   const handleSave = async (key: string, value: string) => {
     const numValue = parseFloat(value);

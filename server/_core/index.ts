@@ -128,10 +128,12 @@ async function startServer() {
   
   // Login Rate Limiting: dynamic max attempts from system settings
   const rawMaxAttempts = await db.getSystemSetting('max_login_attempts');
+  const rawIpMax = await db.getSystemSetting('max_login_attempts_per_ip');
   const dynamicMaxAttempts = rawMaxAttempts ? parseInt(rawMaxAttempts, 10) : 5;
+  const perIpLimit = rawIpMax ? parseInt(rawIpMax, 10) : dynamicMaxAttempts;
   const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: dynamicMaxAttempts,
+    max: perIpLimit,
     message: "Too many login attempts, please try again later.",
     skipSuccessfulRequests: true,
   });
