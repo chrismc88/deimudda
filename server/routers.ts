@@ -652,6 +652,59 @@ export const appRouter = router({
         return reports;
       }),
 
+    // --- Chat moderation ---
+    getChatConversations: adminProcedure
+      .input(z.object({
+        limit: z.number().min(1).max(200).default(50),
+      }).optional())
+      .query(async ({ input }) => {
+        const chats = await db.adminGetConversations(input?.limit);
+        return chats;
+      }),
+
+    getChatMessages: adminProcedure
+      .input(z.object({
+        conversationId: z.number(),
+      }))
+      .query(async ({ input }) => {
+        const messages = await db.adminGetConversationMessages(input.conversationId);
+        return messages;
+      }),
+
+    lockConversation: adminProcedure
+      .input(z.object({
+        conversationId: z.number(),
+        reason: z.string().min(5),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        return db.adminLockConversation(input.conversationId, ctx.user.id, input.reason);
+      }),
+
+    unlockConversation: adminProcedure
+      .input(z.object({
+        conversationId: z.number(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        return db.adminUnlockConversation(input.conversationId, ctx.user.id);
+      }),
+
+    deleteChatMessage: adminProcedure
+      .input(z.object({
+        messageId: z.number(),
+        reason: z.string().min(5),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        return db.adminDeleteMessage(input.messageId, ctx.user.id, input.reason);
+      }),
+
+    restoreChatMessage: adminProcedure
+      .input(z.object({
+        messageId: z.number(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        return db.adminRestoreMessage(input.messageId, ctx.user.id);
+      }),
+
     // Get all admins
     getAllAdmins: superAdminProcedure
       .query(async () => {
@@ -861,6 +914,20 @@ export const appRouter = router({
           ctx.user.id,
           input.sellerId
         );
+        return conversation;
+      }),
+
+    // Get conversation details (lock state etc.)
+    getConversation: protectedProcedure
+      .input(z.number())
+      .query(async ({ ctx, input }) => {
+        const conversation = await db.getConversationDetails(input, ctx.user.id);
+        if (!conversation) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Konversation nicht gefunden',
+          });
+        }
         return conversation;
       }),
 

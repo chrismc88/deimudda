@@ -18,7 +18,10 @@ export default function NewMessage() {
   // Create or get conversation
   const createConversationMutation = trpc.chat.getOrCreateConversation.useMutation({
     onSuccess: (conversation) => {
-      // Redirect to chat window
+      if (!conversation?.id) {
+        toast.error("Konversation konnte nicht erstellt werden.");
+        return;
+      }
       setLocation(`/messages/${conversation.id}`);
     },
     onError: (error) => {
@@ -75,4 +78,3 @@ export default function NewMessage() {
     </div>
   );
 }
-

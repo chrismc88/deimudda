@@ -1,6 +1,6 @@
 import { eq, desc, and, sql, or, inArray, gte, lt, asc, isNotNull, isNull, count } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, sellerProfiles, listings, transactions, reviews, warnings, suspensions, bans, adminLogs, systemSettings, notifications, messages, reports, loginAttempts, blockedIPs, offers, User, SellerProfile, Listing, Transaction, Offer, Notification } from "../drizzle/schema";
+import { InsertUser, users, sellerProfiles, listings, transactions, reviews, warnings, suspensions, bans, adminLogs, systemSettings, notifications, messages, reports, loginAttempts, blockedIPs, offers, conversations, User, SellerProfile, Listing, Transaction, Offer, Notification, Conversation } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -1858,14 +1858,73 @@ export async function deleteNotification(notificationId: number, userId: number)
   }
 }
 
-// ===== CHAT/MESSAGES PLACEHOLDER =====
+// ===== CHAT / MESSAGING =====
+
+async function getConversationRecord(conversationId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const record = await db
+    .select()
+    .from(conversations)
+    .where(eq(conversations.id, conversationId))
+    .limit(1);
+  return record[0] || null;
+}
+
+async function getConversationRecordByParticipants(listingId: number, buyerId: number, sellerId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const record = await db
+    .select()
+    .from(conversations)
+    .where(
+      and(
+        eq(conversations.listingId, listingId),
+        eq(conversations.buyerId, buyerId),
+        eq(conversations.sellerId, sellerId)
+      )
+    )
+    .limit(1);
+  return record[0] || null;
+}
+
+async function mapConversationDetails(db: Awaited<ReturnType<typeof getDb>>, conversation: Conversation) {
+  if (!db) return conversation;
+  const [listing] = await db
+    .select({ strain: listings.strain, imageUrl: listings.imageUrl })
+    .from(listings)
+    .where(eq(listings.id, conversation.listingId))
+    .limit(1);
+
+  const [buyer] = await db
+    .select({ id: users.id, name: users.name })
+    .from(users)
+    .where(eq(users.id, conversation.buyerId))
+    .limit(1);
+
+  const [seller] = await db
+    .select({ id: users.id, name: users.name })
+    .from(users)
+    .where(eq(users.id, conversation.sellerId))
+    .limit(1);
+
+  return {
+    ...conversation,
+    listingStrain: listing?.strain || "Unbekannt",
+    listingImage: listing?.imageUrl,
+    buyerName: buyer?.name || "Käufer",
+    sellerName: seller?.name || "Verkäufer",
+  };
+}
 
 export async function getOrCreateConversation(listingId: number, buyerId: number, sellerId: number) {
-  // Since we don't have a conversations table, we just return the listing info
-  // The conversation is implicit based on messages between buyer/seller for a listing
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
+  }
+
+  if (buyerId === sellerId) {
+    throw new Error("Konversation mit sich selbst ist nicht möglich");
   }
 
   const listing = await db
@@ -1873,66 +1932,118 @@ export async function getOrCreateConversation(listingId: number, buyerId: number
     .from(listings)
     .where(eq(listings.id, listingId))
     .limit(1);
-  
+
   if (!listing.length) {
     throw new Error("Listing not found");
   }
 
-  return {
-    listingId,
-    buyerId,
-    sellerId,
-    listing: listing[0],
-  };
+  if (listing[0].sellerId !== sellerId) {
+    throw new Error("Seller mismatch for listing");
+  }
+
+  let conversation = await getConversationRecordByParticipants(listingId, buyerId, sellerId);
+  if (!conversation) {
+    const [newConversation] = await db
+      .insert(conversations)
+      .values({
+        listingId,
+        buyerId,
+        sellerId,
+        lastMessageAt: new Date(),
+      })
+      .$returningId();
+
+    conversation = await getConversationRecord(newConversation.id);
+  }
+
+  if (!conversation) {
+    throw new Error("Failed to create conversation");
+  }
+
+  return await mapConversationDetails(db, conversation);
+}
+
+export async function getConversationDetails(conversationId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+
+  const conversation = await getConversationRecord(conversationId);
+  if (!conversation) {
+    return null;
+  }
+  if (![conversation.buyerId, conversation.sellerId].includes(userId)) {
+    throw new Error("Kein Zugriff auf diese Konversation");
+  }
+
+  return await mapConversationDetails(db, conversation);
 }
 
 export async function sendMessage(conversationId: number, senderId: number, message: string) {
-  // conversationId is actually the listingId in our simplified model
-  // We need to determine the receiverId based on who the sender is
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
   }
 
-  const listing = await db
-    .select()
-    .from(listings)
-    .where(eq(listings.id, conversationId))
-    .limit(1);
-
-  if (!listing.length) {
-    throw new Error("Listing not found");
+  const conversation = await getConversationRecord(conversationId);
+  if (!conversation) {
+    throw new Error("Konversation nicht gefunden");
   }
 
-  const receiverId = senderId === listing[0].sellerId 
-    ? listing[0].sellerId // If sender is seller, this needs buyer - but we don't know buyer yet
-    : listing[0].sellerId; // If sender is buyer, receiver is seller
+  if (![conversation.buyerId, conversation.sellerId].includes(senderId)) {
+    throw new Error("Sie sind kein Teilnehmer dieser Konversation");
+  }
+
+  if (conversation.locked) {
+    throw new Error("Diese Konversation wurde von Moderatoren gesperrt");
+  }
+
+  const receiverId = senderId === conversation.buyerId ? conversation.sellerId : conversation.buyerId;
 
   const [newMessage] = await db
     .insert(messages)
     .values({
       senderId,
       receiverId,
-      listingId: conversationId,
+      listingId: conversation.listingId,
+      conversationId,
       content: message,
       isRead: false,
     })
     .$returningId();
 
-  return await db
+  const inserted = await db
     .select()
     .from(messages)
     .where(eq(messages.id, newMessage.id))
     .limit(1)
     .then(rows => rows[0]);
+
+  if (inserted) {
+    await db
+      .update(conversations)
+      .set({
+        lastMessageAt: inserted.createdAt,
+        updatedAt: new Date(),
+      })
+      .where(eq(conversations.id, conversationId));
+  }
+
+  return inserted;
 }
 
 export async function getConversationMessages(conversationId: number, userId: number) {
-  // conversationId is the listingId
-  // Get all messages for this listing where user is sender or receiver
   const db = await getDb();
   if (!db) {
     return [] as Array<typeof messages.$inferSelect>;
+  }
+
+  const conversation = await getConversationRecord(conversationId);
+  if (!conversation) {
+    return [];
+  }
+
+  if (![conversation.buyerId, conversation.sellerId].includes(userId)) {
+    throw new Error("Kein Zugriff auf diese Konversation");
   }
 
   const msgs = await db
@@ -1940,23 +2051,20 @@ export async function getConversationMessages(conversationId: number, userId: nu
     .from(messages)
     .where(
       and(
-        eq(messages.listingId, conversationId),
-        or(
-          eq(messages.senderId, userId),
-          eq(messages.receiverId, userId)
-        )
+        eq(messages.conversationId, conversationId),
+        isNull(messages.deletedAt)
       )
     )
     .orderBy(asc(messages.createdAt));
 
-  // Mark messages as read where user is receiver
   await db
     .update(messages)
     .set({ isRead: true })
     .where(
       and(
-        eq(messages.listingId, conversationId),
+        eq(messages.conversationId, conversationId),
         eq(messages.receiverId, userId),
+        isNull(messages.deletedAt),
         eq(messages.isRead, false)
       )
     );
@@ -1965,92 +2073,63 @@ export async function getConversationMessages(conversationId: number, userId: nu
 }
 
 export async function getUserConversations(userId: number) {
-  // Get unique listings where user has sent or received messages
   const db = await getDb();
   if (!db) return [] as unknown as any[];
 
-  // 1) Aggregate by listingId and get lastMessageAt only (no computed columns)
-  const userMessages = await db
-    .select({
-      listingId: messages.listingId,
-      lastMessageAt: sql<Date>`MAX(${messages.createdAt})`.as('lastMessageAt'),
-    })
-    .from(messages)
+  const baseConversations = await db
+    .select()
+    .from(conversations)
     .where(
-      and(
-        isNotNull(messages.listingId),
-        or(
-          eq(messages.senderId, userId),
-          eq(messages.receiverId, userId)
-        )
+      or(
+        eq(conversations.buyerId, userId),
+        eq(conversations.sellerId, userId)
       )
     )
-    .groupBy(messages.listingId)
-    .orderBy(desc(sql`lastMessageAt`));
+    .orderBy(desc(conversations.lastMessageAt));
 
-  // Get listing and user details for each conversation
-  const conversations = await Promise.all(
-    userMessages.map(async (msg) => {
-      // 2) Determine otherUserId based on the most recent message in this conversation
-      const [latest] = await db
-        .select({ senderId: messages.senderId, receiverId: messages.receiverId })
-        .from(messages)
-        .where(
-          and(
-            eq(messages.listingId, msg.listingId!),
-            or(eq(messages.senderId, userId), eq(messages.receiverId, userId))
-          )
-        )
-        .orderBy(desc(messages.createdAt))
-        .limit(1);
-
-      const computedOtherUserId = latest
-        ? (latest.senderId === userId ? latest.receiverId : latest.senderId)
-        : userId;
-
-      const [listing] = await db
-        .select()
-        .from(listings)
-        .where(eq(listings.id, msg.listingId!))
-        .limit(1);
-
-      const [otherUser] = await db
-        .select({
-          id: users.id,
-          name: users.name,
-        })
-        .from(users)
-        .where(eq(users.id, computedOtherUserId))
-        .limit(1);
-
+  const enriched = await Promise.all(
+    baseConversations.map(async (conversation) => {
+      const details = await mapConversationDetails(db, conversation);
       const unreadCount = await db
         .select({ count: sql<number>`COUNT(*)` })
         .from(messages)
         .where(
           and(
-            eq(messages.listingId, msg.listingId!),
+            eq(messages.conversationId, conversation.id),
             eq(messages.receiverId, userId),
-            eq(messages.isRead, false)
+            eq(messages.isRead, false),
+            isNull(messages.deletedAt)
           )
         )
         .then(rows => rows[0]?.count || 0);
 
+      const lastMessage = await db
+        .select({
+          id: messages.id,
+          content: messages.content,
+          senderId: messages.senderId,
+          createdAt: messages.createdAt,
+        })
+        .from(messages)
+        .where(
+          and(
+            eq(messages.conversationId, conversation.id),
+            isNull(messages.deletedAt)
+          )
+        )
+        .orderBy(desc(messages.createdAt))
+        .limit(1)
+        .then(rows => rows[0] || null);
+
       return {
-        id: msg.listingId,
-        listingId: msg.listingId,
-        listingStrain: listing?.strain || "Unknown",
-        listingImage: listing?.imageUrl,
-        buyerId: listing?.sellerId === userId ? computedOtherUserId : userId,
-        sellerId: listing?.sellerId || 0,
-        buyerName: listing?.sellerId === userId ? otherUser?.name || "Unknown" : "Sie",
-        sellerName: listing?.sellerId === userId ? "Sie" : otherUser?.name || "Unknown",
-        lastMessageAt: msg.lastMessageAt,
+        ...details,
         unreadCount,
+        lastMessage,
       };
     })
   );
 
-  return conversations;
+  return enriched;
 }
 
 export async function getUnreadMessageCount(userId: number) {
@@ -2060,13 +2139,207 @@ export async function getUnreadMessageCount(userId: number) {
     const [{ count }] = await db
       .select({ count: sql<number>`COUNT(*)` })
       .from(messages)
-      .where(and(eq(messages.receiverId, userId), eq(messages.isRead, false)));
-    // Verbose: console.log('[Database] getUnreadMessageCount for user', userId, '=>', count);
+      .where(
+        and(
+          eq(messages.receiverId, userId),
+          eq(messages.isRead, false),
+          isNull(messages.deletedAt)
+        )
+      );
     return count || 0;
   } catch (error) {
     console.error('[Database] Failed to get unread message count', error);
     return 0;
   }
+}
+
+export async function adminGetConversations(limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const baseConversations = await db
+    .select()
+    .from(conversations)
+    .orderBy(desc(conversations.lastMessageAt))
+    .limit(limit);
+
+  return Promise.all(
+    baseConversations.map(async (conversation) => {
+      const details = await mapConversationDetails(db, conversation);
+      const messageCount = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(messages)
+        .where(eq(messages.conversationId, conversation.id))
+        .then(rows => rows[0]?.count || 0);
+      const unreadCount = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(messages)
+        .where(
+          and(
+            eq(messages.conversationId, conversation.id),
+            eq(messages.isRead, false),
+            isNull(messages.deletedAt)
+          )
+        )
+        .then(rows => rows[0]?.count || 0);
+
+      return {
+        ...details,
+        messageCount,
+        unreadCount,
+      };
+    })
+  );
+}
+
+export async function adminGetConversationMessages(conversationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const conversation = await getConversationRecord(conversationId);
+  if (!conversation) return [];
+
+  const msgs = await db
+    .select({
+      id: messages.id,
+      senderId: messages.senderId,
+      receiverId: messages.receiverId,
+      content: messages.content,
+      createdAt: messages.createdAt,
+      isRead: messages.isRead,
+      deletedAt: messages.deletedAt,
+      deletedBy: messages.deletedBy,
+      moderatedAt: messages.moderatedAt,
+      moderatedBy: messages.moderatedBy,
+      moderationReason: messages.moderationReason,
+    })
+    .from(messages)
+    .where(eq(messages.conversationId, conversationId))
+    .orderBy(asc(messages.createdAt));
+
+  const senderIds = Array.from(new Set(msgs.map((msg) => msg.senderId).filter(Boolean)));
+  const receiversIds = Array.from(new Set(msgs.map((msg) => msg.receiverId).filter(Boolean)));
+  const userIds = Array.from(new Set([...senderIds, ...receiversIds]));
+
+  const participants = userIds.length
+    ? await db
+        .select({
+          id: users.id,
+          name: users.name,
+        })
+        .from(users)
+        .where(inArray(users.id, userIds))
+    : [];
+
+  const participantMap = new Map(participants.map((p) => [p.id, p.name || `User ${p.id}`]));
+
+  return msgs.map((msg) => ({
+    ...msg,
+    senderName: participantMap.get(msg.senderId) || "Unbekannt",
+    receiverName: participantMap.get(msg.receiverId) || "Unbekannt",
+  }));
+}
+
+export async function adminLockConversation(conversationId: number, adminId: number, reason: string) {
+  const db = await getDb();
+  if (!db) return { success: false };
+
+  await db
+    .update(conversations)
+    .set({
+      locked: true,
+      lockedReason: reason,
+      lockedBy: adminId,
+      lockedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(conversations.id, conversationId));
+
+  await createAdminLog({
+    adminId,
+    action: 'lock_conversation',
+    targetType: 'conversation',
+    targetId: conversationId,
+    details: reason,
+  });
+
+  return { success: true };
+}
+
+export async function adminUnlockConversation(conversationId: number, adminId: number) {
+  const db = await getDb();
+  if (!db) return { success: false };
+
+  await db
+    .update(conversations)
+    .set({
+      locked: false,
+      lockedReason: null,
+      lockedBy: null,
+      lockedAt: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(conversations.id, conversationId));
+
+  await createAdminLog({
+    adminId,
+    action: 'unlock_conversation',
+    targetType: 'conversation',
+    targetId: conversationId,
+  });
+
+  return { success: true };
+}
+
+export async function adminDeleteMessage(messageId: number, adminId: number, reason: string) {
+  const db = await getDb();
+  if (!db) return { success: false };
+
+  await db
+    .update(messages)
+    .set({
+      deletedAt: new Date(),
+      deletedBy: adminId,
+      moderatedAt: new Date(),
+      moderatedBy: adminId,
+      moderationReason: reason,
+    })
+    .where(eq(messages.id, messageId));
+
+  await createAdminLog({
+    adminId,
+    action: 'delete_message',
+    targetType: 'message',
+    targetId: messageId,
+    details: reason,
+  });
+
+  return { success: true };
+}
+
+export async function adminRestoreMessage(messageId: number, adminId: number) {
+  const db = await getDb();
+  if (!db) return { success: false };
+
+  await db
+    .update(messages)
+    .set({
+      deletedAt: null,
+      deletedBy: null,
+      moderatedAt: null,
+      moderatedBy: null,
+      moderationReason: null,
+    })
+    .where(eq(messages.id, messageId));
+
+  await createAdminLog({
+    adminId,
+    action: 'restore_message',
+    targetType: 'message',
+    targetId: messageId,
+  });
+
+  return { success: true };
 }
 
 export async function getListingById(id: number) {

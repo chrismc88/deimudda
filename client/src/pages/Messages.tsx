@@ -1,21 +1,20 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import DashboardLayout from "@/components/DashboardLayout";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { trpc } from "@/lib/trpc";
-import { Link, useLocation } from "wouter";
-import { MessageCircle, Send, AlertCircle } from "lucide-react";
+import { AlertCircle, MessageCircle, Send } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
-import DashboardLayout from "@/components/DashboardLayout";
+import { trpc } from "@/lib/trpc";
+import { Link, useLocation } from "wouter";
 
 export default function Messages() {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
 
-  // Get all conversations
   const { data: conversations = [], isLoading } = trpc.chat.getConversations.useQuery(undefined, {
-    refetchInterval: 10000, // Refresh every 10 seconds
+    refetchInterval: 10000,
   });
 
   if (!isAuthenticated) {
@@ -25,9 +24,7 @@ export default function Messages() {
           <Card className="max-w-md">
             <CardHeader>
               <CardTitle>Zugriff verweigert</CardTitle>
-              <CardDescription>
-                Sie müssen eingeloggt sein, um Ihre Nachrichten zu sehen.
-              </CardDescription>
+              <CardDescription>Sie müssen eingeloggt sein, um Ihre Nachrichten zu sehen.</CardDescription>
             </CardHeader>
             <CardContent>
               <Link href="/">
@@ -43,8 +40,6 @@ export default function Messages() {
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-        {/* Legal Disclaimer */}
         <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6 rounded-r-lg">
           <div className="flex items-start gap-3">
             <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
@@ -52,9 +47,15 @@ export default function Messages() {
               <p className="font-semibold mb-1">⚠️ Wichtige Hinweise zum Chat:</p>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Tauschen Sie <strong>keine illegalen Inhalte</strong> aus (Verkauf von Blütenständen ist verboten)</li>
-                <li><strong>Geben Sie persönliche Daten</strong> (Telefonnummer, vollständige Adresse) <strong>erst nach Kaufabschluss</strong> weiter</li>
+                <li>
+                  <strong>Geben Sie persönliche Daten</strong> (Telefonnummer, vollständige Adresse){" "}
+                  <strong>erst nach Kaufabschluss</strong> weiter
+                </li>
                 <li>Der <strong>Standort des Verkäufers</strong> ist bereits auf der Plattform sichtbar</li>
-                <li><strong>🔒 Empfehlung:</strong> Tauschen Sie sensible Daten (Adresse, Telefon) über <strong>verschlüsselte Messenger</strong> (Signal, Telegram, WhatsApp) aus - nicht über diese Plattform</li>
+                <li>
+                  <strong>🔐 Empfehlung:</strong> Tauschen Sie sensible Daten (Adresse, Telefon) über{" "}
+                  <strong>verschlüsselte Messenger</strong> (Signal, Telegram, WhatsApp) aus - nicht über diese Plattform
+                </li>
                 <li>Alle Nachrichten können von Moderatoren eingesehen werden</li>
               </ul>
             </div>
@@ -67,9 +68,7 @@ export default function Messages() {
               <MessageCircle className="h-6 w-6 text-blue-600" />
               <div>
                 <CardTitle>Nachrichten</CardTitle>
-                <CardDescription>
-                  Kommunizieren Sie mit Käufern und Verkäufern
-                </CardDescription>
+                <CardDescription>Kommunizieren Sie mit Käufern und Verkäufern</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -81,19 +80,19 @@ export default function Messages() {
             ) : conversations.length === 0 ? (
               <div className="text-center py-12">
                 <MessageCircle className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <p className="text-lg font-medium text-muted-foreground">
-                  Keine Nachrichten
-                </p>
+                <p className="text-lg font-medium text-muted-foreground">Keine Nachrichten</p>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Starten Sie eine Konversation, indem Sie auf "Verkäufer kontaktieren" bei einem Inserat klicken.
+                  Starten Sie eine Konversation, indem Sie auf &quot;Verkäufer kontaktieren&quot; bei einem Inserat klicken.
                 </p>
               </div>
             ) : (
               <div className="space-y-3">
-                {conversations.map((conversation: { id: number; otherUser: { name: string; avatarUrl?: string }; lastMessage?: { content: string; createdAt: Date }; unreadCount: number }) => {
+                {conversations.map((conversation: any) => {
                   const isUserBuyer = conversation.buyerId === user?.id;
                   const otherUserName = isUserBuyer ? conversation.sellerName : conversation.buyerName;
                   const role = isUserBuyer ? "Verkäufer" : "Käufer";
+                  const lastMessageTime = conversation.lastMessage?.createdAt || conversation.lastMessageAt;
+                  const lastMessageText = conversation.lastMessage?.content || "Keine Nachrichten";
 
                   return (
                     <div
@@ -102,7 +101,6 @@ export default function Messages() {
                       onClick={() => setLocation(`/messages/${conversation.id}`)}
                     >
                       <div className="flex items-start gap-4">
-                        {/* Listing Image */}
                         {conversation.listingImage && (
                           <img
                             src={conversation.listingImage}
@@ -111,31 +109,35 @@ export default function Messages() {
                           />
                         )}
 
-                        {/* Conversation Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-base truncate">
-                              {conversation.listingStrain}
-                            </h3>
+                            <h3 className="font-semibold text-base truncate">{conversation.listingStrain}</h3>
                             {conversation.unreadCount > 0 && (
                               <Badge variant="destructive" className="text-xs">
                                 {conversation.unreadCount} neu
+                              </Badge>
+                            )}
+                            {conversation.locked && (
+                              <Badge variant="outline" className="text-xs text-red-700 border-red-300">
+                                Gesperrt
                               </Badge>
                             )}
                           </div>
                           <p className="text-sm text-muted-foreground mb-1">
                             {role}: {otherUserName}
                           </p>
-                          <p className="text-xs text-muted-foreground">
-                            Letzte Nachricht:{" "}
-                            {formatDistanceToNow(new Date(conversation.lastMessageAt), {
-                              addSuffix: true,
-                              locale: de,
-                            })}
-                          </p>
+                          <p className="text-xs text-muted-foreground truncate">{lastMessageText}</p>
+                          {lastMessageTime && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Letzte Nachricht:{" "}
+                              {formatDistanceToNow(new Date(lastMessageTime), {
+                                addSuffix: true,
+                                locale: de,
+                              })}
+                            </p>
+                          )}
                         </div>
 
-                        {/* Action Button */}
                         <Button variant="outline" size="sm" className="flex-shrink-0">
                           <Send className="h-4 w-4 mr-2" />
                           Öffnen
@@ -152,4 +154,3 @@ export default function Messages() {
     </DashboardLayout>
   );
 }
-

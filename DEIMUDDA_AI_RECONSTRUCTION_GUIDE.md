@@ -681,7 +681,7 @@ export function registerOAuthRoutes(app: Express) {
 ### Schritt 4.4: Weitere Backend-Dateien
 
 Erstelle die folgenden Dateien im `server` bzw. `server/_core` Verzeichnis.
-### Schritt 4.x:  db.ts 
+### Schritt 4.x: db.ts
 
 **`server/db.ts`**
 
@@ -2897,7 +2897,7 @@ export async function reduceListingQuantity(listingId: number, quantityPurchased
 
 ```
 
-### Schritt 4.x:  routers.ts 
+### Schritt 4.x: routers.ts
 
 **`server/routers.ts`**
 
@@ -4122,7 +4122,7 @@ export type AppRouter = typeof appRouter;
 
 ```
 
-### Schritt 4.x:  paypal.ts 
+### Schritt 4.x: paypal.ts
 
 **`server/paypal.ts`**
 
@@ -4344,7 +4344,7 @@ export async function verifyPayPalWebhookSignature(
 
 ```
 
-### Schritt 4.x:  paypalHelpers.ts 
+### Schritt 4.x: paypalHelpers.ts
 
 **`server/paypalHelpers.ts`**
 
@@ -4447,7 +4447,7 @@ export async function getPayPalOrderDetails(orderId: string) {
 
 ```
 
-### Schritt 4.x:  storage.ts 
+### Schritt 4.x: storage.ts
 
 **`server/storage.ts`**
 
@@ -4556,7 +4556,7 @@ export async function storageGet(relKey: string): Promise<{ key: string; url: st
 }
 ```
 
-### Schritt 4.x:  external-storage.ts 
+### Schritt 4.x: external-storage.ts
 
 **`server/external-storage.ts`**
 
@@ -4611,7 +4611,7 @@ export async function externalStoragePut(
     throw new Error("External storage not enabled");
   }```
 
-### Schritt 4.x:  upload.ts 
+### Schritt 4.x: upload.ts
 
 **`server/upload.ts`**
 
@@ -4654,7 +4654,7 @@ export default router;
 
 ```
 
-### Schritt 4.x:  systemRouter.ts 
+### Schritt 4.x: systemRouter.ts
 
 **`server/systemRouter.ts`**
 
@@ -4699,7 +4699,7 @@ export const systemRouter = router({
 
 ```
 
-### Schritt 4.x:  models.ts 
+### Schritt 4.x: models.ts
 
 **`server/models.ts`**
 
@@ -4935,7 +4935,7 @@ export interface MessageWithDetails extends Message {
 
 ```
 
-### Schritt 4.x:  enums.ts 
+### Schritt 4.x: enums.ts
 
 **`server/enums.ts`**
 
@@ -5018,7 +5018,7 @@ export const isUserStatus = (value: string): value is UserStatus =>
 
 ```
 
-### Schritt 4.x:  const.ts 
+### Schritt 4.x: const.ts
 
 **`server/const.ts`**
 
@@ -5047,7 +5047,7 @@ export const getLoginUrl = () => {
   return url.toString();
 };```
 
-### Schritt 4.x:  settings-cache.ts 
+### Schritt 4.x: settings-cache.ts
 
 **`server/settings-cache.ts`**
 
@@ -5152,7 +5152,7 @@ export const settingsCache = new SettingsCache(10); // 10 seconds TTL
 
 ```
 
-### Schritt 4.x:  useAuth.ts 
+### Schritt 4.x: useAuth.ts
 
 **`server/useAuth.ts`**
 
@@ -5164,7 +5164,7 @@ export const settingsCache = new SettingsCache(10); // 10 seconds TTL
 }
 ```
 
-### Schritt 4.x:  useMaintenanceMode.ts 
+### Schritt 4.x: useMaintenanceMode.ts
 
 **`server/useMaintenanceMode.ts`**
 

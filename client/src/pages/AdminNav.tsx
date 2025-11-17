@@ -1,17 +1,18 @@
 import { useAuth } from "../_core/hooks/useAuth";
 import { Link, useLocation } from "wouter";
-import { 
-  LayoutDashboard, 
-  Users, 
-  CreditCard, 
-  Package, 
-  Settings, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  Users,
+  CreditCard,
+  Package,
+  Settings,
+  BarChart3,
   Shield,
   Clock,
   Scale,
   DollarSign,
-  ChevronRight
+  ChevronRight,
+  MessageSquare
 } from "lucide-react";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent } from "../components/ui/card";
@@ -49,6 +50,12 @@ export default function AdminNav() {
       label: "Listings", 
       icon: Package,
       description: "Content Moderation"
+    },
+    {
+      path: "/admin/chats",
+      label: "Chats",
+      icon: MessageSquare,
+      description: "Chat Moderation"
     },
     {
       path: "/admin/stats",

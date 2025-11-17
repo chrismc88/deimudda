@@ -154,6 +154,26 @@ export type Review = typeof reviews.$inferSelect;
 export type InsertReview = typeof reviews.$inferInsert;
 
 /**
+ * Conversations between buyers and sellers (per listing)
+ */
+export const conversations = mysqlTable("conversations", {
+  id: int("id").autoincrement().primaryKey(),
+  listingId: int("listingId").notNull(),
+  buyerId: int("buyerId").notNull(),
+  sellerId: int("sellerId").notNull(),
+  locked: boolean("locked").default(false).notNull(),
+  lockedReason: text("lockedReason"),
+  lockedBy: int("lockedBy"),
+  lockedAt: timestamp("lockedAt"),
+  lastMessageAt: timestamp("lastMessageAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Conversation = typeof conversations.$inferSelect;
+export type InsertConversation = typeof conversations.$inferInsert;
+
+/**
  * Messages for user-to-user communication
  */
 export const messages = mysqlTable("messages", {
@@ -161,8 +181,14 @@ export const messages = mysqlTable("messages", {
   senderId: int("senderId").notNull(),
   receiverId: int("receiverId").notNull(),
   listingId: int("listingId"),
+  conversationId: int("conversationId"),
   content: text("content").notNull(),
   isRead: boolean("isRead").default(false).notNull(),
+  moderatedAt: timestamp("moderatedAt"),
+  moderatedBy: int("moderatedBy"),
+  moderationReason: text("moderationReason"),
+  deletedAt: timestamp("deletedAt"),
+  deletedBy: int("deletedBy"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
