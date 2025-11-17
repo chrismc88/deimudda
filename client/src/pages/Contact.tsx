@@ -47,9 +47,15 @@ export default function Contact() {
                     </a>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <Phone className="h-5 w-5 text-green-600 flex-shrink-0" />
-                    <span>[Telefonnummer einfügen]</span>
+                  <div className="flex items-start gap-3">
+                    <Phone className="h-5 w-5 text-green-600 flex-shrink-0 mt-1" />
+                    <div>
+                      <p className="font-semibold">Telefon-Support</p>
+                      <p className="text-sm text-gray-600">
+                        Während der Beta-Phase erfolgt der Support ausschließlich per E‑Mail. Hinterlasse uns deine Rufnummer,
+                        falls ein Rückruf nötig ist.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -176,6 +182,25 @@ export default function Contact() {
               </div>
             </section>
 
+            <section className="mb-8">
+              <h2 className="text-2xl font-bold mb-4">Beta & Einladungen</h2>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 not-prose">
+                <p className="text-gray-800 mb-3">
+                  deimudda befindet sich aktuell in einer geschlossenen Beta. Wenn du Zugang erhalten möchtest, schreibe uns
+                  eine kurze Nachricht an <a href="mailto:info@deimudda.de" className="text-yellow-700 font-semibold hover:underline">info@deimudda.de</a>
+                  mit folgenden Informationen:
+                </p>
+                <ul className="list-disc pl-6 text-gray-700 space-y-2">
+                  <li>Warum du testen möchtest (Käufer:in, Verkäufer:in, Partner)</li>
+                  <li>Dein bevorzugter Kontaktweg (E-Mail/Telefon)</li>
+                  <li>Optional: vorhandener Shop/Instagram-Link</li>
+                </ul>
+                <p className="text-sm text-gray-600 mt-4">
+                  Wir melden uns mit einer Einladung und den nächsten Schritten, sobald Plätze frei sind.
+                </p>
+              </div>
+            </section>
+
             {/* Wichtiger Hinweis */}
             <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-8">
               <h3 className="text-lg font-bold text-amber-900 mb-2">⚠️ Wichtiger Hinweis</h3>
@@ -277,4 +302,3 @@ export default function Contact() {
     </div>
   );
 }
-

@@ -24,10 +24,22 @@ export function Header() {
             <h1 className="text-2xl font-bold text-green-700">{siteName}</h1>
           </div>
         </Link>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {isAuthenticated ? (
             <>
               <span className="text-sm text-gray-600 hidden sm:inline">Hallo, {user?.name}</span>
+              <Link href="/offers">
+                <Button variant="outline" size="sm">
+                  Angebote
+                </Button>
+              </Link>
+              {user?.isSellerActive && (
+                <Link href="/seller/dashboard">
+                  <Button variant="outline" size="sm">
+                    Seller
+                  </Button>
+                </Link>
+              )}
               <MessageIcon />
               <NotificationBell />
               {/* Admin-Link nur für Admins/Super-Admins */}

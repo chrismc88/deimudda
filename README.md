@@ -21,6 +21,13 @@ pnpm db:push
 pnpm dev
 ```
 
+## 🧪 Beta-Zugang
+
+Die Plattform läuft aktuell als geschlossene Beta. Accounts werden manuell vergeben:
+- Kontaktiere uns unter `info@deimudda.de` (siehe `Contact`-Seite) mit kurzer Beschreibung deines Nutzungszwecks.
+- Nach Freischaltung erhältst du einen Dev-Login-Link und kannst dein Profil einrichten.
+- Öffentlicher OAuth-Login folgt in Phase 2 der Roadmap.
+
 ---
 
 ## 📁 Projektstruktur
