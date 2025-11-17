@@ -16,6 +16,7 @@ interface ImageUploadProps {
 export default function ImageUpload({ label, currentImageUrl, onImageUploaded, maxSizeMB = 5 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(currentImageUrl);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Update preview when currentImageUrl changes
   useEffect(() => {
@@ -28,11 +29,14 @@ export default function ImageUpload({ label, currentImageUrl, onImageUploaded, m
     onSuccess: (data) => {
       setPreviewUrl(data.url);
       onImageUploaded(data.url);
+      setErrorMessage(null);
       toast.success("Bild erfolgreich hochgeladen!");
       setUploading(false);
     },
     onError: (error: any) => {
-      toast.error("Fehler beim Hochladen: " + error.message);
+      const message = error?.message || "Fehler beim Hochladen.";
+      setErrorMessage(message);
+      toast.error("Fehler beim Hochladen: " + message);
       setUploading(false);
     },
   });
@@ -44,13 +48,17 @@ export default function ImageUpload({ label, currentImageUrl, onImageUploaded, m
     // Check file size
     const fileSizeMB = file.size / (1024 * 1024);
     if (fileSizeMB > maxSizeMB) {
-      toast.error(`Bild ist zu groß (max. ${maxSizeMB} MB)`);
+      const message = `Bild ist zu groß (max. ${maxSizeMB} MB)`;
+      setErrorMessage(message);
+      toast.error(message);
       return;
     }
 
     // Check file type
     if (!file.type.startsWith("image/")) {
-      toast.error("Nur Bilddateien sind erlaubt");
+      const message = "Nur Bilddateien sind erlaubt";
+      setErrorMessage(message);
+      toast.error(message);
       return;
     }
 
@@ -67,7 +75,9 @@ export default function ImageUpload({ label, currentImageUrl, onImageUploaded, m
       });
     };
     reader.onerror = () => {
-      toast.error("Fehler beim Lesen der Datei");
+      const message = "Fehler beim Lesen der Datei";
+      setErrorMessage(message);
+      toast.error(message);
       setUploading(false);
     };
     reader.readAsDataURL(file);
@@ -75,6 +85,7 @@ export default function ImageUpload({ label, currentImageUrl, onImageUploaded, m
 
   const handleRemove = () => {
     setPreviewUrl(undefined);
+    setErrorMessage(null);
     onImageUploaded("");
   };
 
@@ -119,7 +130,7 @@ export default function ImageUpload({ label, currentImageUrl, onImageUploaded, m
           <span className="text-sm text-gray-500">Max. {maxSizeMB} MB</span>
         </div>
       )}
+      {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
     </div>
   );
 }
-

@@ -7,9 +7,12 @@ import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
 
 export async function setupVite(app: Express, server: Server) {
+  // Attach Vite HMR to the existing HTTP server to avoid separate WS port
   const serverOptions = {
     middlewareMode: true,
-    hmr: { server },
+    hmr: {
+      server,
+    },
     allowedHosts: true as const,
   };
 
@@ -48,13 +51,21 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath =
-    process.env.NODE_ENV === "development"
-      ? path.resolve(import.meta.dirname, "../..", "dist", "public")
-      : path.resolve(import.meta.dirname, "public");
+  // Resolve candidate locations for built client assets and pick the first that exists.
+  const candidates = [
+    // Typical when running bundled server from dist/index.js
+    path.resolve(import.meta.dirname, "public"),
+    // Fallback for environments where dirname resolves into nested folders
+    path.resolve(import.meta.dirname, "../..", "dist", "public"),
+    // Last resort: project CWD dist/public
+    path.resolve(process.cwd(), "dist", "public"),
+  ];
+
+  const distPath = candidates.find(p => fs.existsSync(p)) ?? candidates[0];
   if (!fs.existsSync(distPath)) {
     console.error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`
+      `Could not find the build directory in any of: ${candidates.join(", ")}.\n` +
+        `Run \`pnpm build\` to generate client assets.`
     );
   }
 

@@ -21,21 +21,42 @@ import {
 } from "@/components/ui/sidebar";
 import { APP_LOGO, APP_TITLE, getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, Users, ShoppingBag, MessageSquare, Settings, Shield, FileText, Clock, Handshake } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
+import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
 
-const menuItems = [
-  { icon: LayoutDashboard, label: "Page 1", path: "/" },
-  { icon: Users, label: "Page 2", path: "/some-path" },
+type MenuItem = {
+  icon: any;
+  label: string;
+  path: string;
+  roles?: Array<"user" | "admin" | "super_admin">;
+  showIf?: (u: { role: string; isSellerActive?: boolean } | null) => boolean;
+};
+
+const baseMenuItems: MenuItem[] = [
+  { icon: LayoutDashboard, label: "Dashboard", path: "/", roles: ["user", "admin", "super_admin"] },
+  { icon: ShoppingBag, label: "Käufer-Bereich", path: "/buyer/dashboard", roles: ["user", "admin", "super_admin"] },
+  // Seller area only for active sellers or admins
+  { icon: ShoppingBag, label: "Verkäufer-Bereich", path: "/seller/dashboard", roles: ["user", "admin", "super_admin"], showIf: (u) => Boolean(u && (u.role !== "user" ? true : u.isSellerActive)) },
+  { icon: Handshake, label: "Angebote", path: "/offers", roles: ["user", "admin", "super_admin"] },
+  { icon: MessageSquare, label: "Nachrichten", path: "/messages", roles: ["user", "admin", "super_admin"] },
+  { icon: Users, label: "Benutzerverwaltung", path: "/admin/users", roles: ["admin", "super_admin"] },
+  { icon: Shield, label: "Admin-Verwaltung", path: "/admin/management", roles: ["super_admin"] },
+  { icon: FileText, label: "Reports", path: "/admin/reports", roles: ["admin", "super_admin"] },
+  { icon: Clock, label: "Admin-Logs", path: "/admin/logs", roles: ["admin", "super_admin"] },
+  { icon: Settings, label: "Einstellungen", path: "/admin/manage", roles: ["super_admin"] },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 280;
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 480;
+
+// Dev-Login-URL nur für lokale Entwicklung
+const DEV_LOGIN_URL =
+  "/api/dev-login?openId=dev-user&name=Dev%20User";
 
 export default function DashboardLayout({
   children,
@@ -53,7 +74,7 @@ export default function DashboardLayout({
   }, [sidebarWidth]);
 
   if (loading) {
-    return <DashboardLayoutSkeleton />
+    return <DashboardLayoutSkeleton />;
   }
 
   if (!user) {
@@ -77,15 +98,39 @@ export default function DashboardLayout({
               </p>
             </div>
           </div>
-          <Button
-            onClick={() => {
-              window.location.href = getLoginUrl();
-            }}
-            size="lg"
-            className="w-full shadow-lg hover:shadow-xl transition-all"
-          >
-            Sign in
-          </Button>
+
+          {/* Zwei Buttons nebeneinander: Sign in (immer), Dev Login (nur in DEV) */}
+          <div className="flex w-full gap-3">
+            <Button
+              onClick={() => {
+                window.location.href = getLoginUrl();
+              }}
+              size="lg"
+              className="w-full shadow-lg hover:shadow-xl transition-all"
+            >
+              Sign in
+            </Button>
+
+            {import.meta.env.DEV && (
+              <Button
+                onClick={() => {
+                  window.location.href = DEV_LOGIN_URL;
+                }}
+                size="lg"
+                variant="secondary"
+                className="w-full"
+                title="Sets a local session cookie for development"
+              >
+                Dev Login
+              </Button>
+            )}
+          </div>
+
+          {import.meta.env.DEV && (
+            <p className="text-xs text-muted-foreground text-center">
+              Dev Login setzt ein Session-Cookie über <code>/api/dev-login</code>.
+            </p>
+          )}
         </div>
       </div>
     );
@@ -121,7 +166,7 @@ function DashboardLayoutContent({
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const activeMenuItem = menuItems.find(item => item.path === location);
+  const activeMenuItem = baseMenuItems.find((item) => item.path === location);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -134,7 +179,8 @@ function DashboardLayoutContent({
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return;
 
-      const sidebarLeft = sidebarRef.current?.getBoundingClientRect().left ?? 0;
+      const sidebarLeft =
+        sidebarRef.current?.getBoundingClientRect().left ?? 0;
       const newWidth = e.clientX - sidebarLeft;
       if (newWidth >= MIN_WIDTH && newWidth <= MAX_WIDTH) {
         setSidebarWidth(newWidth);
@@ -209,24 +255,27 @@ function DashboardLayoutContent({
 
           <SidebarContent className="gap-0">
             <SidebarMenu className="px-2 py-1">
-              {menuItems.map(item => {
-                const isActive = location === item.path;
-                return (
-                  <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton
-                      isActive={isActive}
-                      onClick={() => setLocation(item.path)}
-                      tooltip={item.label}
-                      className={`h-10 transition-all font-normal`}
-                    >
-                      <item.icon
-                        className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
-                      />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+              {baseMenuItems
+                .filter((item) => !item.roles || item.roles.includes(user?.role || "user"))
+                .filter((item) => !item.showIf || item.showIf(user))
+                .map((item) => {
+                  const isActive = location === item.path;
+                  return (
+                    <SidebarMenuItem key={item.path}>
+                      <SidebarMenuButton
+                        isActive={isActive}
+                        onClick={() => setLocation(item.path)}
+                        tooltip={item.label}
+                        className={`h-10 transition-all font-normal`}
+                      >
+                        <item.icon
+                          className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
+                        />
+                        <span>{item.label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
             </SidebarMenu>
           </SidebarContent>
 
@@ -261,8 +310,11 @@ function DashboardLayoutContent({
             </DropdownMenu>
           </SidebarFooter>
         </Sidebar>
+
         <div
-          className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors ${isCollapsed ? "hidden" : ""}`}
+          className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors ${
+            isCollapsed ? "hidden" : ""
+          }`}
           onMouseDown={() => {
             if (isCollapsed) return;
             setIsResizing(true);

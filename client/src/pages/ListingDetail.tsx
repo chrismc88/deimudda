@@ -4,15 +4,47 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, ShoppingCart, Gavel, MapPin, User } from "lucide-react";
+import { AlertCircle, ShoppingCart, Gavel, MapPin, User, Flag } from "lucide-react";
 import { ImageGallery } from "@/components/ImageGallery";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { useState } from "react";
 import NotFound from "./NotFound";
 
 export default function ListingDetail() {
   const { id } = useParams<{ id: string }>();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const listingId = parseInt(id || "0");
+  const utils = trpc.useUtils();
+
+  // Report state
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportMessage, setReportMessage] = useState("");
+
+  // Offer dialog state
+  const [offerDialogOpen, setOfferDialogOpen] = useState(false);
+  const [offerAmount, setOfferAmount] = useState("");
+  const [offerError, setOfferError] = useState("");
+  const globalMinOffer = trpc.admin.getSystemSetting.useQuery('min_offer_amount');
+
+  const createOffer = trpc.offer.create.useMutation({
+    onSuccess: () => {
+      toast.success('Angebot gesendet');
+      setOfferDialogOpen(false);
+      setOfferAmount('');
+      setOfferError('');
+      utils.offer.getMine.invalidate();
+      utils.offer.getIncoming.invalidate();
+    },
+    onError: (err) => {
+      setOfferError(err.message);
+    }
+  });
 
   const listing = trpc.listing.getById.useQuery(listingId, {
     enabled: !!id,
@@ -25,6 +57,32 @@ export default function ListingDetail() {
   const reviews = trpc.review.getBySellerId.useQuery(listing.data?.sellerId || 0, {
     enabled: !!listing.data?.sellerId,
   });
+
+  // Report mutation
+  const createReport = trpc.admin.createReport.useMutation({
+    onSuccess: () => {
+      toast.success("Meldung erfolgreich abgeschickt");
+      setReportDialogOpen(false);
+      setReportReason("");
+      setReportMessage("");
+    },
+    onError: (error) => {
+      toast.error(`Fehler: ${error.message}`);
+    },
+  });
+
+  const handleReport = () => {
+    if (!reportReason) {
+      toast.error("Bitte wähle einen Grund aus");
+      return;
+    }
+    createReport.mutate({
+      reportedType: 'listing',
+      reportedId: listingId,
+      reason: reportReason,
+      message: reportMessage,
+    });
+  };
 
   if (listing.isLoading) {
     return (
@@ -39,6 +97,17 @@ export default function ListingDetail() {
   }
 
   const data = listing.data;
+  const parsePriceValue = (value: unknown) => {
+    if (typeof value === "number") return value;
+    if (typeof value === "string") {
+      const parsed = parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
+  };
+  const resolvedPrice = data.priceType === "fixed"
+    ? parsePriceValue(data.fixedPrice as any)
+    : parsePriceValue(data.offerMinPrice as any);
 
   // Parse images field (can be JSON string or array)
   const getImages = (): string[] => {
@@ -65,9 +134,7 @@ export default function ListingDetail() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Back Button */}
-        <a href="/" className="text-blue-600 hover:text-blue-800 mb-6 inline-block">
-          ← Zurück
-        </a>
+        <BackButton useHistory={true} label="Zurück" />
 
         <div className="grid md:grid-cols-3 gap-8">
           {/* Main Content */}
@@ -113,9 +180,11 @@ export default function ListingDetail() {
                   <div>
                     <p className="text-sm text-gray-600">Preis</p>
                     <p className="text-2xl font-bold text-green-600">
-                      {data.priceType === ("fixed" as any)
-                        ? `€${parseFloat(data.fixedPrice as any).toFixed(2)}`
-                        : `Ab €${parseFloat(data.auctionStartPrice as any).toFixed(2)}`}
+                      {data.priceType === "fixed"
+                        ? `€${resolvedPrice.toFixed(2)}`
+                        : data.offerMinPrice
+                        ? `Ab €${resolvedPrice.toFixed(2)}`
+                        : "Verhandlungsbasis"}
                     </p>
                   </div>
                 </div>
@@ -187,23 +256,6 @@ export default function ListingDetail() {
                       )}
                     </div>
                   </div>
-                )}
-
-                {/* Auction Info */}
-                {data.priceType === ("auction" as any) && data.auctionEndTime && (
-                  <Alert>
-                    <Gavel className="h-4 w-4" />
-                    <AlertDescription>
-                      Auktion endet am{" "}
-                      {new Date(data.auctionEndTime).toLocaleDateString("de-DE", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </AlertDescription>
-                  </Alert>
                 )}
 
                 {/* Legal Notice */}
@@ -320,18 +372,95 @@ export default function ListingDetail() {
                   <>
                     {data.status === "active" ? (
                       <>
-                        {data.priceType === ("fixed" as any) ? (
-                          <a href={`/checkout/${data.id}`}>
+                        {data.priceType === "fixed" ? (
+                          <Link href={`/checkout/${data.id}`}>
                             <Button className="w-full gap-2" size="lg">
                               <ShoppingCart className="w-5 h-5" />
                               Jetzt kaufen
                             </Button>
-                          </a>
+                          </Link>
                         ) : (
-                          <Button className="w-full gap-2" size="lg" variant="outline">
-                            <Gavel className="w-5 h-5" />
-                            Bieten
-                          </Button>
+                          <Dialog open={offerDialogOpen} onOpenChange={setOfferDialogOpen}>
+                            <DialogTrigger asChild>
+                              <Button className="w-full gap-2" size="lg" variant="outline">
+                                <Gavel className="w-5 h-5" />
+                                Angebot senden
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Angebot senden</DialogTitle>
+                                <DialogDescription>
+                                  Mindestbetrag beachten. Dein Angebot ist verbindlich bis zur Antwort oder Ablauf.
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <div>
+                                  <Label>Betrag (€)</Label>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    min={Math.max(
+                                      (data.offerMinPrice ? parseFloat(String(data.offerMinPrice)) : 0),
+                                      globalMinOffer.data ? parseFloat(globalMinOffer.data) : 0
+                                    )}
+                                    value={offerAmount}
+                                    onChange={e => setOfferAmount(e.target.value)}
+                                    className="border rounded px-3 py-2 w-full"
+                                  />
+                                  <p className="text-xs text-gray-600 mt-1">
+                                    Mindestbetrag: {Math.max(
+                                      (data.offerMinPrice ? parseFloat(String(data.offerMinPrice)) : 0),
+                                      globalMinOffer.data ? parseFloat(globalMinOffer.data) : 0
+                                    ).toFixed(2)}€
+                                  </p>
+                                  {offerAmount && parseFloat(offerAmount) < Math.max(
+                                    (data.offerMinPrice ? parseFloat(String(data.offerMinPrice)) : 0),
+                                    globalMinOffer.data ? parseFloat(globalMinOffer.data) : 0
+                                  ) && (
+                                    <p className="text-xs text-red-600 mt-1">Angebot liegt unter Mindestbetrag</p>
+                                  )}
+                                </div>
+                                <div>
+                                  <Label>Nachricht (optional)</Label>
+                                  <Textarea
+                                    placeholder="Kurze Nachricht an den Verkäufer"
+                                    rows={3}
+                                    value={reportMessage}
+                                    onChange={e => setReportMessage(e.target.value)}
+                                  />
+                                </div>
+                                {offerError && (
+                                  <Alert className="bg-red-50 border-red-200">
+                                    <AlertDescription className="text-red-700 text-sm">{offerError}</AlertDescription>
+                                  </Alert>
+                                )}
+                              </div>
+                              <DialogFooter>
+                                <Button variant="outline" onClick={() => setOfferDialogOpen(false)}>Abbrechen</Button>
+                                <Button
+                                  disabled={createOffer.isPending || !offerAmount || parseFloat(offerAmount) < Math.max(
+                                    (data.offerMinPrice ? parseFloat(String(data.offerMinPrice)) : 0),
+                                    globalMinOffer.data ? parseFloat(globalMinOffer.data) : 0
+                                  )}
+                                  onClick={() => {
+                                    const amountNum = parseFloat(offerAmount);
+                                    if (!Number.isFinite(amountNum)) {
+                                      setOfferError('Ungültiger Betrag');
+                                      return;
+                                    }
+                                    createOffer.mutate({
+                                      listingId: data.id,
+                                      offerAmount: amountNum,
+                                      message: reportMessage || undefined,
+                                    });
+                                  }}
+                                >
+                                  {createOffer.isPending ? 'Sendet...' : 'Angebot senden'}
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
                         )}
                         <p className="text-xs text-gray-500 text-center">
                           Sichere Zahlung mit PayPal
@@ -370,10 +499,74 @@ export default function ListingDetail() {
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Report Card */}
+            {isAuthenticated && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Problem melden</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full gap-2">
+                        <Flag className="w-4 h-4" />
+                        Listing melden
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Listing melden</DialogTitle>
+                        <DialogDescription>
+                          Bitte beschreibe das Problem mit diesem Listing. Unsere Admins werden sich darum kümmern.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="reason">Grund *</Label>
+                          <Select value={reportReason} onValueChange={setReportReason}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Wähle einen Grund" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="spam">Spam</SelectItem>
+                              <SelectItem value="fake">Fake / Betrügerisches Angebot</SelectItem>
+                              <SelectItem value="illegal">Illegale Inhalte</SelectItem>
+                              <SelectItem value="inappropriate">Unangemessene Inhalte</SelectItem>
+                              <SelectItem value="duplicate">Doppeltes Listing</SelectItem>
+                              <SelectItem value="wrong_category">Falsche Kategorie</SelectItem>
+                              <SelectItem value="price_issue">Preis-Probleme</SelectItem>
+                              <SelectItem value="other">Sonstiges</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="message">Nachricht (optional)</Label>
+                          <Textarea
+                            id="message"
+                            placeholder="Weitere Details..."
+                            value={reportMessage}
+                            onChange={(e) => setReportMessage(e.target.value)}
+                            rows={4}
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setReportDialogOpen(false)}>
+                          Abbrechen
+                        </Button>
+                        <Button onClick={handleReport} disabled={createReport.isPending}>
+                          {createReport.isPending ? "Wird gesendet..." : "Meldung abschicken"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
 }
-

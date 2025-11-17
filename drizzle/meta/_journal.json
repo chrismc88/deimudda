@@ -57,6 +57,34 @@
       "when": 1761305134296,
       "tag": "0007_tricky_tyger_tiger",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1762957606022,
+      "tag": "0008_friendly_black_bird",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1763156807582,
+      "tag": "0009_stiff_lady_deathstrike",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1763234693778,
+      "tag": "0010_sour_doctor_doom",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1763261001346,
+      "tag": "0011_bent_marvex",
+      "breakpoints": true
     }
   ]
 }

@@ -30,6 +30,13 @@ export default function Checkout() {
   const sellerProfile = trpc.seller.getProfileById.useQuery(listing.data?.sellerId || 0, {
     enabled: !!listing.data?.sellerId,
   });
+  // Dynamische Gebühren aus System Settings laden (Cache 5min)
+  const { data: platformFeeStr } = trpc.admin.getSystemSetting.useQuery('platform_fee_fixed', { staleTime: 300000 });
+  const { data: paypalPercStr } = trpc.admin.getSystemSetting.useQuery('paypal_fee_percentage', { staleTime: 300000 });
+  const { data: paypalFixedStr } = trpc.admin.getSystemSetting.useQuery('paypal_fee_fixed', { staleTime: 300000 });
+  const PLATFORM_FEE_FIXED = parseFloat(platformFeeStr || '0.42');
+  const PAYPAL_PERC = parseFloat(paypalPercStr || '2.49') / 100;
+  const PAYPAL_FIXED = parseFloat(paypalFixedStr || '0.49');
 
   // Load PayPal SDK
   useEffect(() => {
@@ -60,11 +67,11 @@ export default function Checkout() {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                listingId: listing.data.id,
+                listingId: listing.data?.id,
                 quantity,
                 amount: totalAmount,
                 buyerId: user?.id,
-                sellerId: listing.data.sellerId,
+                sellerId: listing.data?.sellerId,
               }),
             });
 
@@ -109,17 +116,30 @@ export default function Checkout() {
       .render("#paypal-button-container");
   }, [window.paypal, listing.data, isAuthenticated, quantity, user?.id]);
 
+  const parsePriceValue = (value: unknown) => {
+    if (typeof value === "number") return value;
+    if (typeof value === "string") {
+      const parsed = parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
+  };
+
+  const resolveUnitPrice = () => {
+    if (!listing.data) return 0;
+    return listing.data.priceType === "fixed"
+      ? parsePriceValue(listing.data.fixedPrice as any)
+      : parsePriceValue(listing.data.offerMinPrice as any);
+  };
+
   const calculateTotal = () => {
     if (!listing.data) return "0.00";
 
-    const unitPrice =
-      listing.data.priceType === ("fixed" as any)
-        ? parseFloat(listing.data.fixedPrice as any)
-        : parseFloat(listing.data.auctionStartPrice as any);
+    const unitPrice = resolveUnitPrice();
 
     const subtotal = unitPrice * quantity;
-    const platformFee = 0.42 * quantity; // €0.42 per item
-    const paypalFee = paymentMethod === 'paypal' ? (subtotal * 0.0249 + 0.49) : 0; // Only for PayPal
+    const platformFee = PLATFORM_FEE_FIXED * quantity; // dynamische Plattformgebühr
+    const paypalFee = paymentMethod === 'paypal' ? (subtotal * PAYPAL_PERC + PAYPAL_FIXED) : 0; // dynamische PayPal Gebühr
     const total = subtotal + platformFee + paypalFee;
 
     return total.toFixed(2);
@@ -168,14 +188,11 @@ export default function Checkout() {
     );
   }
 
-  const unitPrice =
-    listing.data.priceType === ("fixed" as any)
-      ? parseFloat(listing.data.fixedPrice as any)
-      : parseFloat(listing.data.auctionStartPrice as any);
+  const unitPrice = resolveUnitPrice();
 
   const subtotal = unitPrice * quantity;
-  const platformFee = 0.42 * quantity; // €0.42 per item
-  const paypalFee = paymentMethod === 'paypal' ? (subtotal * 0.0249 + 0.49) : 0; // Only for PayPal
+  const platformFee = PLATFORM_FEE_FIXED * quantity;
+  const paypalFee = paymentMethod === 'paypal' ? (subtotal * PAYPAL_PERC + PAYPAL_FIXED) : 0;
   const total = subtotal + platformFee + paypalFee;
 
   return (
@@ -268,7 +285,8 @@ export default function Checkout() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setQuantity(Math.min(listing.data.quantity, quantity + 1))}
+                    onClick={() => setQuantity(Math.min(listing.data?.quantity || 1, quantity + 1))}
+                    disabled={quantity >= (listing.data?.quantity || 1)}
                   >
                     +
                   </Button>
@@ -436,4 +454,3 @@ export default function Checkout() {
     </div>
   );
 }
-

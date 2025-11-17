@@ -33,7 +33,7 @@ export default function SellerShop() {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Back Button */}
-      <Link to="/" className="inline-flex items-center gap-2 text-green-600 hover:text-green-700 mb-6">
+      <Link href="/" className="inline-flex items-center gap-2 text-green-600 hover:text-green-700 mb-6">
         <ArrowLeft className="w-4 h-4" />
         Zurück zur Startseite
       </Link>
@@ -107,7 +107,7 @@ export default function SellerShop() {
 
             return (
               <Card key={listing.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                <Link to={`/listing/${listing.id}`}>
+                <Link href={`/listing/${listing.id}`}>
                   {mainImage && (
                     <img
                       src={mainImage}
@@ -136,7 +136,9 @@ export default function SellerShop() {
                         <p className="text-2xl font-bold text-green-600">
                           {listing.priceType === "fixed"
                             ? `€${parseFloat(listing.fixedPrice || "0").toFixed(2)}`
-                            : `Ab €${parseFloat(listing.auctionStartPrice || "0").toFixed(2)}`}
+                            : listing.offerMinPrice
+                            ? `Ab €${parseFloat(listing.offerMinPrice || "0").toFixed(2)}`
+                            : "Verhandlungsbasis"}
                         </p>
                       </div>
                     </div>
@@ -154,4 +156,3 @@ export default function SellerShop() {
     </div>
   );
 }
-

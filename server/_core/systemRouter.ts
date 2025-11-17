@@ -1,4 +1,5 @@
 import { z } from "zod";
+import * as db from "../db";
 import { notifyOwner } from "./notification";
 import { adminProcedure, publicProcedure, router } from "./trpc";
 
@@ -26,4 +27,11 @@ export const systemRouter = router({
         success: delivered,
       } as const;
     }),
+
+  getMaintenanceStatus: publicProcedure.query(async () => {
+    const maintenanceMode = await db.getSystemSetting("maintenance_mode");
+    return {
+      maintenanceMode: maintenanceMode === "true",
+    };
+  }),
 });

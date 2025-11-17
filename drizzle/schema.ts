@@ -16,7 +16,12 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: mysqlEnum("role", ["user", "admin", "super_admin"]).default("user").notNull(),
+  status: mysqlEnum("status", ["active", "warned", "suspended", "banned"]).default("active").notNull(),
+  warningCount: int("warningCount").default(0).notNull(),
+  suspendedUntil: timestamp("suspendedUntil"),
+  bannedAt: timestamp("bannedAt"),
+  bannedReason: text("bannedReason"),
   nickname: varchar("nickname", { length: 100 }),
   location: varchar("location", { length: 255 }),
   profileImageUrl: varchar("profileImageUrl", { length: 500 }),
@@ -146,140 +151,198 @@ export const reviews = mysqlTable("reviews", {
 });
 
 export type Review = typeof reviews.$inferSelect;
-export type InsertReview = typeof reviews.$inferInsert;// Admin-System Tabellen
+export type InsertReview = typeof reviews.$inferInsert;
 
-// Warnings
+/**
+ * Conversations between buyers and sellers (per listing)
+ */
+export const conversations = mysqlTable("conversations", {
+  id: int("id").autoincrement().primaryKey(),
+  listingId: int("listingId").notNull(),
+  buyerId: int("buyerId").notNull(),
+  sellerId: int("sellerId").notNull(),
+  locked: boolean("locked").default(false).notNull(),
+  lockedReason: text("lockedReason"),
+  lockedBy: int("lockedBy"),
+  lockedAt: timestamp("lockedAt"),
+  lastMessageAt: timestamp("lastMessageAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Conversation = typeof conversations.$inferSelect;
+export type InsertConversation = typeof conversations.$inferInsert;
+
+/**
+ * Messages for user-to-user communication
+ */
+export const messages = mysqlTable("messages", {
+  id: int("id").autoincrement().primaryKey(),
+  senderId: int("senderId").notNull(),
+  receiverId: int("receiverId").notNull(),
+  listingId: int("listingId"),
+  conversationId: int("conversationId"),
+  content: text("content").notNull(),
+  isRead: boolean("isRead").default(false).notNull(),
+  moderatedAt: timestamp("moderatedAt"),
+  moderatedBy: int("moderatedBy"),
+  moderationReason: text("moderationReason"),
+  deletedAt: timestamp("deletedAt"),
+  deletedBy: int("deletedBy"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Message = typeof messages.$inferSelect;
+export type InsertMessage = typeof messages.$inferInsert;
+
+/**
+ * Notifications for system events
+ */
+export const notifications = mysqlTable("notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  type: varchar("type", { length: 50 }).notNull(), // 'message', 'offer', 'sale', 'review', 'warning', 'admin'
+  title: varchar("title", { length: 255 }).notNull(),
+  message: text("message").notNull(),
+  link: varchar("link", { length: 500 }),
+  isRead: boolean("isRead").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
+
+/**
+ * Admin warnings for users
+ */
 export const warnings = mysqlTable("warnings", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   adminId: int("adminId").notNull(),
-  reason: mysqlEnum("reason", ['fraud', 'tos_violation', 'illegal_products', 'harassment', 'fake_listing', 'non_delivery', 'other']).notNull(),
+  reason: varchar("reason", { length: 255 }).notNull(),
   message: text("message"),
+  active: boolean("active").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  removedAt: timestamp("removedAt"),
+  removedBy: int("removedBy"),
 });
+
 export type Warning = typeof warnings.$inferSelect;
 export type InsertWarning = typeof warnings.$inferInsert;
 
-// Suspensions
+/**
+ * Temporary user suspensions
+ */
 export const suspensions = mysqlTable("suspensions", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   adminId: int("adminId").notNull(),
   reason: text("reason").notNull(),
-  startDate: timestamp("startDate").defaultNow().notNull(),
-  endDate: timestamp("endDate").notNull(),
-  isActive: boolean("isActive").default(true).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  suspendedAt: timestamp("suspendedAt").defaultNow().notNull(),
+  suspendedUntil: timestamp("suspendedUntil").notNull(),
+  active: boolean("active").default(true).notNull(),
+  liftedAt: timestamp("liftedAt"),
+  liftedBy: int("liftedBy"),
 });
+
 export type Suspension = typeof suspensions.$inferSelect;
 export type InsertSuspension = typeof suspensions.$inferInsert;
 
-// Bans
+/**
+ * Permanent user bans
+ */
 export const bans = mysqlTable("bans", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   adminId: int("adminId").notNull(),
   reason: text("reason").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  bannedAt: timestamp("bannedAt").defaultNow().notNull(),
+  unbannedAt: timestamp("unbannedAt"),
+  unbannedBy: int("unbannedBy"),
 });
+
 export type Ban = typeof bans.$inferSelect;
 export type InsertBan = typeof bans.$inferInsert;
 
-// Admin Logs
-export const adminLogs = mysqlTable("adminLogs", {
-  id: int("id").autoincrement().primaryKey(),
-  adminId: int("adminId").notNull(),
-  action: varchar("action", { length: 255 }).notNull(),
-  targetType: varchar("targetType", { length: 50 }),
-  targetId: int("targetId"),
-  details: text("details"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
-export type AdminLog = typeof adminLogs.$inferSelect;
-export type InsertAdminLog = typeof adminLogs.$inferInsert;
-
-// System Settings
-export const systemSettings = mysqlTable("systemSettings", {
-  id: int("id").autoincrement().primaryKey(),
-  settingKey: varchar("settingKey", { length: 255 }).notNull().unique(),
-  settingValue: text("settingValue"),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-  updatedBy: int("updatedBy"),
-});
-export type SystemSetting = typeof systemSettings.$inferSelect;
-export type InsertSystemSetting = typeof systemSettings.$inferInsert;
-
-// Notifications
-export const notifications = mysqlTable("notifications", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  type: varchar("type", { length: 50 }).notNull(),
-  title: varchar("title", { length: 255 }).notNull(),
-  message: text("message"),
-  isRead: boolean("isRead").default(false).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
-export type Notification = typeof notifications.$inferSelect;
-export type InsertNotification = typeof notifications.$inferInsert;
-
-// Conversations
-export const conversations = mysqlTable("conversations", {
-  id: int("id").autoincrement().primaryKey(),
-  user1Id: int("user1Id").notNull(),
-  user2Id: int("user2Id").notNull(),
-  listingId: int("listingId"),
-  lastMessageAt: timestamp("lastMessageAt").defaultNow().notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
-export type Conversation = typeof conversations.$inferSelect;
-export type InsertConversation = typeof conversations.$inferInsert;
-
-// Messages
-export const messages = mysqlTable("messages", {
-  id: int("id").autoincrement().primaryKey(),
-  conversationId: int("conversationId").notNull(),
-  senderId: int("senderId").notNull(),
-  content: text("content").notNull(),
-  isRead: boolean("isRead").default(false).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
-export type Message = typeof messages.$inferSelect;
-export type InsertMessage = typeof messages.$inferInsert;
-
-// Reports
+/**
+ * User reports (listings or users)
+ */
 export const reports = mysqlTable("reports", {
   id: int("id").autoincrement().primaryKey(),
   reporterId: int("reporterId").notNull(),
-  reportedUserId: int("reportedUserId"),
-  reportedListingId: int("reportedListingId"),
+  reportedType: varchar("reportedType", { length: 50 }).notNull(), // 'listing', 'user'
+  reportedId: int("reportedId").notNull(),
   reason: varchar("reason", { length: 255 }).notNull(),
-  description: text("description"),
-  status: mysqlEnum("status", ['pending', 'reviewing', 'resolved', 'dismissed']).default('pending').notNull(),
+  message: text("message"),
+  status: varchar("status", { length: 50 }).default("pending").notNull(), // 'pending', 'reviewed', 'resolved', 'rejected'
   reviewedBy: int("reviewedBy"),
   reviewedAt: timestamp("reviewedAt"),
+  resolution: text("resolution"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
+
 export type Report = typeof reports.$inferSelect;
 export type InsertReport = typeof reports.$inferInsert;
 
-// Login Attempts
+/**
+ * Login attempts for security tracking
+ */
 export const loginAttempts = mysqlTable("loginAttempts", {
   id: int("id").autoincrement().primaryKey(),
-  email: varchar("email", { length: 320 }),
-  ipAddress: varchar("ipAddress", { length: 45 }).notNull(),
+  ip: varchar("ip", { length: 45 }).notNull(), // IPv4/IPv6
+  userId: int("userId"),
+  userAgent: text("userAgent"),
   success: boolean("success").notNull(),
-  attemptedAt: timestamp("attemptedAt").defaultNow().notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
 });
+
 export type LoginAttempt = typeof loginAttempts.$inferSelect;
 export type InsertLoginAttempt = typeof loginAttempts.$inferInsert;
 
-// Blocked IPs
+/**
+ * Blocked IP addresses
+ */
 export const blockedIPs = mysqlTable("blockedIPs", {
   id: int("id").autoincrement().primaryKey(),
-  ipAddress: varchar("ipAddress", { length: 45 }).notNull().unique(),
-  reason: text("reason"),
-  blockedBy: int("blockedBy"),
+  ip: varchar("ip", { length: 45 }).unique().notNull(),
+  reason: text("reason").notNull(),
+  blockedBy: int("blockedBy").notNull(),
   blockedAt: timestamp("blockedAt").defaultNow().notNull(),
+  unblockedAt: timestamp("unblockedAt"),
+  unblockedBy: int("unblockedBy"),
 });
+
 export type BlockedIP = typeof blockedIPs.$inferSelect;
 export type InsertBlockedIP = typeof blockedIPs.$inferInsert;
+
+/**
+ * Admin activity logs (audit trail)
+ */
+export const adminLogs = mysqlTable("adminLogs", {
+  id: int("id").autoincrement().primaryKey(),
+  adminId: int("adminId").notNull(),
+  action: varchar("action", { length: 100 }).notNull(), // 'warn_user', 'suspend_user', 'ban_user', etc.
+  targetType: varchar("targetType", { length: 50 }).notNull(), // 'user', 'listing', 'report', 'system_setting'
+  targetId: int("targetId").notNull(),
+  details: text("details"), // JSON or plain text
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AdminLog = typeof adminLogs.$inferSelect;
+export type InsertAdminLog = typeof adminLogs.$inferInsert;
+
+/**
+ * System settings (dynamic configuration)
+ */
+export const systemSettings = mysqlTable("systemSettings", {
+  id: int("id").autoincrement().primaryKey(),
+  key: varchar("key", { length: 255 }).unique().notNull(),
+  value: text("value").notNull(),
+  category: varchar("category", { length: 100 }), // 'fees', 'security', 'limits', 'general'
+  description: text("description"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedBy: int("updatedBy"),
+});
+
+export type SystemSetting = typeof systemSettings.$inferSelect;
+export type InsertSystemSetting = typeof systemSettings.$inferInsert;

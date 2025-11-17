@@ -7,11 +7,6 @@ settings:
 overrides:
   tailwindcss>nanoid: 3.3.7
 
-patchedDependencies:
-  wouter@3.7.1:
-    hash: 4e16e6ff3fde7d6c1024d3e0c8605dc9eb6afb690d0d49958c2f449091813072
-    path: patches/wouter@3.7.1.patch
-
 importers:
 
   .:
@@ -22,9 +17,15 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: ^3.693.0
         version: 3.907.0
+      '@hookform/resolvers':
+        specifier: ^5.2.2
+        version: 5.2.2(react-hook-form@7.64.0(react@19.2.0))
       '@paypal/checkout-server-sdk':
         specifier: ^1.0.3
         version: 1.0.3
+      '@paypal/react-paypal-js':
+        specifier: ^8.9.2
+        version: 8.9.2(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@radix-ui/react-accordion':
         specifier: ^1.2.12
         version: 1.2.12(@types/react-dom@19.2.1(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -133,6 +134,9 @@ importers:
       cookie:
         specifier: ^1.0.2
         version: 1.0.2
+      cors:
+        specifier: ^2.8.5
+        version: 2.8.5
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -148,9 +152,15 @@ importers:
       express:
         specifier: ^4.21.2
         version: 4.21.2
+      express-rate-limit:
+        specifier: ^8.2.1
+        version: 8.2.1(express@4.21.2)
       framer-motion:
         specifier: ^12.23.22
         version: 12.23.22(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      helmet:
+        specifier: ^8.1.0
+        version: 8.1.0
       input-otp:
         specifier: ^1.4.2
         version: 1.4.2(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -206,8 +216,8 @@ importers:
         specifier: ^1.1.2
         version: 1.1.2(@types/react-dom@19.2.1(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       wouter:
-        specifier: ^3.3.5
-        version: 3.7.1(patch_hash=4e16e6ff3fde7d6c1024d3e0c8605dc9eb6afb690d0d49958c2f449091813072)(react@19.2.0)
+        specifier: 3.3.5
+        version: 3.3.5(react@19.2.0)
       zod:
         specifier: ^4.1.12
         version: 4.1.12
@@ -242,8 +252,11 @@ importers:
       autoprefixer:
         specifier: ^10.4.20
         version: 10.4.21(postcss@8.5.6)
+      cross-env:
+        specifier: ^10.1.0
+        version: 10.1.0
       drizzle-kit:
-        specifier: ^0.31.4
+        specifier: ^0.31.5
         version: 0.31.5
       esbuild:
         specifier: ^0.25.0
@@ -261,7 +274,7 @@ importers:
         specifier: ^4.1.14
         version: 4.1.14
       tsx:
-        specifier: ^4.19.1
+        specifier: ^4.20.6
         version: 4.20.6
       tw-animate-css:
         specifier: ^1.4.0
@@ -544,6 +557,9 @@ packages:
 
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
+
+  '@epic-web/invariant@1.0.0':
+    resolution: {integrity: sha512-lrTPqgvfFQtR/eY/qkIzp98OGdNJu0m5ji3q/nJI8v3SXkRKEnWiOxMmbvcSoAIzv/cGiuvRy57k4suKQSAdwA==}
 
   '@esbuild-kit/core-utils@3.3.2':
     resolution: {integrity: sha512-sPRAnw9CdSsRmEtnsl2WXWdyquogVpB3yZ3dgwJfe8zrOzTsV7cJvmwrKVa+0ma5BoiGJ+BoqkMvawbayKUsqQ==}
@@ -994,6 +1010,11 @@ packages:
   '@floating-ui/utils@0.2.10':
     resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
 
+  '@hookform/resolvers@5.2.2':
+    resolution: {integrity: sha512-A/IxlMLShx3KjV/HeTcTfaMxdwy690+L/ZADoeaTltLx+CVuzkeVIPuybK3jrRfw7YZnmdKsVVHAlEPIAEUNlA==}
+    peerDependencies:
+      react-hook-form: ^7.55.0
+
   '@isaacs/fs-minipass@4.0.1':
     resolution: {integrity: sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w==}
     engines: {node: '>=18.0.0'}
@@ -1022,9 +1043,21 @@ packages:
     engines: {node: '>=8'}
     deprecated: 'Package no longer supported. The author suggests using the @paypal/paypal-server-sdk package instead: https://www.npmjs.com/package/@paypal/paypal-server-sdk. Contact Support at https://www.npmjs.com/support for more info.'
 
+  '@paypal/paypal-js@9.0.1':
+    resolution: {integrity: sha512-6A5hkyYBSuloO7rPwnoPoy/0PPNH0pZZ1TBSTuEaSVqJ9h9t13PiP1ZarffirsO/e5t4hKjUmUORjgKV9sTMLw==}
+
   '@paypal/paypalhttp@1.0.1':
     resolution: {integrity: sha512-DC7AHxTT7drF6dUi3YaFdPVuT15sIkpD5H2eHmdtFgxM4UanS1o1ZDfMhR9mpxd8o+X6pz2r+EZVRRq+n1cssQ==}
     engines: {node: '>=4'}
+
+  '@paypal/react-paypal-js@8.9.2':
+    resolution: {integrity: sha512-z1GoA7KAkhFCSmpIsRxe9aseXRvfOMgF6vCJ2Mym0VOSYJm8bZSC3Ui4SjONnglfV8S4P8djpe5QB7FtKsDXrQ==}
+    peerDependencies:
+      react: ^16.8.0 || ^17 || ^18 || ^19
+      react-dom: ^16.8.0 || ^17 || ^18 || ^19
+
+  '@paypal/sdk-constants@1.0.157':
+    resolution: {integrity: sha512-BjxWT9rK6dM1AOffSpvHYY47/8BY775jgEYYiwH6eL4YaqU5Epcw7zOtwQ8L4UaEn4FCAjZ2EWxaS83dCN7SpA==}
 
   '@radix-ui/number@1.1.1':
     resolution: {integrity: sha512-MkKCwxlXTgz6CFoJx3pCwn07GKp36+aZyu/u2Ln2VrA5DcdyCZkASEDBTd8x5whTQQL5CiYf4prXKLcgQdv29g==}
@@ -1967,6 +2000,9 @@ packages:
     resolution: {integrity: sha512-4aUIteuyxtBUhVdiQqcDhKFitwfd9hqoSDYY2KRXiWtgoWJ9Bmise+KfEPDiVHWeJepvF8xJO9/9+WDIciMFFw==}
     engines: {node: '>=18.0.0'}
 
+  '@standard-schema/utils@0.3.0':
+    resolution: {integrity: sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g==}
+
   '@tailwindcss/node@4.1.14':
     resolution: {integrity: sha512-hpz+8vFk3Ic2xssIA3e01R6jkmsAhvkQdXlEbRTk6S10xDAtiQiM3FyvZVGsucefq764euO/b8WUW9ysLdThHw==}
 
@@ -2354,6 +2390,19 @@ packages:
     resolution: {integrity: sha512-yCEafptTtb4bk7GLEQoM8KVJpxAfdBJYaXyzQEgQQQgYrZiDp8SJmGKlYza6CYjEDNstAdNdKA3UuoULlEbS6w==}
     engines: {node: '>=12.13'}
 
+  cors@2.8.5:
+    resolution: {integrity: sha512-KIHbLJqu73RGr/hnbrO9uBeixNGuvSQjul/jdFvS/KFSIH1hWVd1ng7zOHx+YrEfInLG7q4n6GHQ9cDtxv/P6g==}
+    engines: {node: '>= 0.10'}
+
+  cross-env@10.1.0:
+    resolution: {integrity: sha512-GsYosgnACZTADcmEyJctkJIoqAhHjttw7RsFrVoJNXbsWWqaq6Ym+7kZjq6mS45O0jij6vtiReppKQEtqWy6Dw==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  cross-spawn@7.0.6:
+    resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
+    engines: {node: '>= 8'}
+
   cssesc@3.0.0:
     resolution: {integrity: sha512-/Tb/JcjK111nNScGob5MNtsntNM1aCNUDipB/TkwZFhyDrrE47SOx/18wF2bbjgc3ZzCSKW1T5nt5EbFoAz/Vg==}
     engines: {node: '>=4'}
@@ -2660,6 +2709,12 @@ packages:
     resolution: {integrity: sha512-JhFGDVJ7tmDJItKhYgJCGLOWjuK9vPxiXoUFLwLDc99NlmklilbiQJwoctZtt13+xMw91MCk/REan6MWHqDjyA==}
     engines: {node: '>=12.0.0'}
 
+  express-rate-limit@8.2.1:
+    resolution: {integrity: sha512-PCZEIEIxqwhzw4KF0n7QF4QqruVTcF73O5kFKUnGOyjbCCgizBBiFaYpd/fnBLUMPw/BWw9OsiN7GgrNYr7j6g==}
+    engines: {node: '>= 16'}
+    peerDependencies:
+      express: '>= 4.11'
+
   express@4.21.2:
     resolution: {integrity: sha512-28HqgMZAmih1Czt9ny7qr6ek2qddF4FclbMzwhCREB6OFfH+rXAnuNCwo1/wFvrtbgsQDb4kSbX9de9lFbrXnA==}
     engines: {node: '>= 0.10.0'}
@@ -2772,6 +2827,13 @@ packages:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
 
+  helmet@8.1.0:
+    resolution: {integrity: sha512-jOiHyAZsmnr8LqoPGmCjYAaiuWwjAPLgY8ZX2XrmHawt99/u1y6RgrZMTeoPfpUbV96HOalYgz1qzkRbw54Pmg==}
+    engines: {node: '>=18.0.0'}
+
+  hi-base32@0.5.1:
+    resolution: {integrity: sha512-EmBBpvdYh/4XxsnUybsPag6VikPYnN30td+vQk+GI3qpahVEG9+gTkG0aXVxTjBqQ5T6ijbWIu77O+C5WFWsnA==}
+
   http-errors@2.0.0:
     resolution: {integrity: sha512-FtwrG/euBzaEjYeRqOgly7G0qviiXoJWnvEH2Z1plBdXgbyjv34pHTSb9zoeHMyDy33+DWy5Wt9Wo+TURtOYSQ==}
     engines: {node: '>= 0.8'}
@@ -2797,6 +2859,10 @@ packages:
     resolution: {integrity: sha512-5Hh7Y1wQbvY5ooGgPbDaL5iYLAPzMTUrjMulskHLH6wnv/A+1q5rgEaiuqEjB+oxGXIVZs1FF+R/KPN3ZSQYYg==}
     engines: {node: '>=12'}
 
+  ip-address@10.0.1:
+    resolution: {integrity: sha512-NWv9YLW4PoW2B7xtzaS3NCot75m6nK7Icdv0o3lfMceJVRfSoQwqD4wEH5rLwoKJwUiZ/rfpiVBhnaF0FK4HoA==}
+    engines: {node: '>= 12'}
+
   ipaddr.js@1.9.1:
     resolution: {integrity: sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==}
     engines: {node: '>= 0.10'}
@@ -2807,6 +2873,9 @@ packages:
   is-what@4.1.16:
     resolution: {integrity: sha512-ZhMwEosbFJkA0YhFnNDgTM4ZxDRsS6HqTo7qsZM08fehyRYIYa0yHu5R6mgo1n/8MgaPBXiPimPD77baVFYg+A==}
     engines: {node: '>=12.13'}
+
+  isexe@2.0.0:
+    resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
 
   jiti@2.6.1:
     resolution: {integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==}
@@ -3040,6 +3109,10 @@ packages:
     resolution: {integrity: sha512-CiyeOxFT/JZyN5m0z9PfXw4SCBJ6Sygz1Dpl0wqjlhDEGGBP1GnsUVEL0p63hoG1fcj3fHynXi9NYO4nWOL+qQ==}
     engines: {node: '>= 0.8'}
 
+  path-key@3.1.1:
+    resolution: {integrity: sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q==}
+    engines: {node: '>=8'}
+
   path-to-regexp@0.1.12:
     resolution: {integrity: sha512-RA1GjUVMnvYFxuqovrEqZoxxW5NUZqbwKtYz/Tt7nXerk0LbLblQmrsgdeOxV5SFHf0UDggjS/bSeOZwt1pmEQ==}
 
@@ -3077,6 +3150,9 @@ packages:
     resolution: {integrity: sha512-I7AIg5boAr5R0FFtJ6rCfD+LFsWHp81dolrFD8S79U9tb8Az2nGrJncnMSnys+bpQJfRUzqs9hnA81OAA3hCuQ==}
     engines: {node: '>=14'}
     hasBin: true
+
+  promise-polyfill@8.3.0:
+    resolution: {integrity: sha512-H5oELycFml5yto/atYqmjyigJoAo3+OXwolYiH7OfQuYlAqhxNvTfiNMbV9hsC6Yp83yE5r2KTVmtrG6R9i6Pg==}
 
   prop-types@15.8.1:
     resolution: {integrity: sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==}
@@ -3231,6 +3307,14 @@ packages:
 
   setprototypeof@1.2.0:
     resolution: {integrity: sha512-E5LDX7Wrp85Kil5bhZv46j8jOeboKq5JMmYM3gVGdGH8xFpPWXUMsNrlODCrkoxMEeNi/XZIwuRvY4XNwYMJpw==}
+
+  shebang-command@2.0.0:
+    resolution: {integrity: sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==}
+    engines: {node: '>=8'}
+
+  shebang-regex@3.0.0:
+    resolution: {integrity: sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==}
+    engines: {node: '>=8'}
 
   side-channel-list@1.0.0:
     resolution: {integrity: sha512-FCLHtRD/gnpCiCHEiJLOwdmFP+wzCmDEkc9y7NsYxeF4u7Btsn1ZuwgwJGxImImHicJArLP4R0yX4c2KCrMrTA==}
@@ -3529,13 +3613,18 @@ packages:
       jsdom:
         optional: true
 
+  which@2.0.2:
+    resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}
+    engines: {node: '>= 8'}
+    hasBin: true
+
   why-is-node-running@2.3.0:
     resolution: {integrity: sha512-hUrmaWBdVDcxvYqnyh09zunKzROWjbZTiNy8dBEjkS7ehEDQibXJ7XvlmtbwuTclUiIyN+CyXQD4Vmko8fNm8w==}
     engines: {node: '>=8'}
     hasBin: true
 
-  wouter@3.7.1:
-    resolution: {integrity: sha512-od5LGmndSUzntZkE2R5CHhoiJ7YMuTIbiXsa0Anytc2RATekgv4sfWRAxLEULBrp7ADzinWQw8g470lkT8+fOw==}
+  wouter@3.3.5:
+    resolution: {integrity: sha512-bx3fLQAMn+EhYbBdY3W1gw9ZfO/uchudxYMwOIBzF3HVgqNEEIT199vEoh7FLTC0Vz5+rpMO6NdFsOkGX1QQCw==}
     peerDependencies:
       react: '>=16.8.0'
 
@@ -4170,6 +4259,8 @@ snapshots:
 
   '@drizzle-team/brocli@0.10.2': {}
 
+  '@epic-web/invariant@1.0.0': {}
+
   '@esbuild-kit/core-utils@3.3.2':
     dependencies:
       esbuild: 0.18.20
@@ -4410,6 +4501,11 @@ snapshots:
 
   '@floating-ui/utils@0.2.10': {}
 
+  '@hookform/resolvers@5.2.2(react-hook-form@7.64.0(react@19.2.0))':
+    dependencies:
+      '@standard-schema/utils': 0.3.0
+      react-hook-form: 7.64.0(react@19.2.0)
+
   '@isaacs/fs-minipass@4.0.1':
     dependencies:
       minipass: 7.1.2
@@ -4439,7 +4535,22 @@ snapshots:
     dependencies:
       '@paypal/paypalhttp': 1.0.1
 
+  '@paypal/paypal-js@9.0.1':
+    dependencies:
+      promise-polyfill: 8.3.0
+
   '@paypal/paypalhttp@1.0.1': {}
+
+  '@paypal/react-paypal-js@8.9.2(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
+    dependencies:
+      '@paypal/paypal-js': 9.0.1
+      '@paypal/sdk-constants': 1.0.157
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
+
+  '@paypal/sdk-constants@1.0.157':
+    dependencies:
+      hi-base32: 0.5.1
 
   '@radix-ui/number@1.1.1': {}
 
@@ -5499,6 +5610,8 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
+  '@standard-schema/utils@0.3.0': {}
+
   '@tailwindcss/node@4.1.14':
     dependencies:
       '@jridgewell/remapping': 2.3.5
@@ -5910,6 +6023,22 @@ snapshots:
     dependencies:
       is-what: 4.1.16
 
+  cors@2.8.5:
+    dependencies:
+      object-assign: 4.1.1
+      vary: 1.1.2
+
+  cross-env@10.1.0:
+    dependencies:
+      '@epic-web/invariant': 1.0.0
+      cross-spawn: 7.0.6
+
+  cross-spawn@7.0.6:
+    dependencies:
+      path-key: 3.1.1
+      shebang-command: 2.0.0
+      which: 2.0.2
+
   cssesc@3.0.0: {}
 
   csstype@3.1.3: {}
@@ -6151,6 +6280,11 @@ snapshots:
 
   expect-type@1.2.2: {}
 
+  express-rate-limit@8.2.1(express@4.21.2):
+    dependencies:
+      express: 4.21.2
+      ip-address: 10.0.1
+
   express@4.21.2:
     dependencies:
       accepts: 1.3.8
@@ -6283,6 +6417,10 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
+  helmet@8.1.0: {}
+
+  hi-base32@0.5.1: {}
+
   http-errors@2.0.0:
     dependencies:
       depd: 2.0.0
@@ -6308,11 +6446,15 @@ snapshots:
 
   internmap@2.0.3: {}
 
+  ip-address@10.0.1: {}
+
   ipaddr.js@1.9.1: {}
 
   is-property@1.0.2: {}
 
   is-what@4.1.16: {}
+
+  isexe@2.0.0: {}
 
   jiti@2.6.1: {}
 
@@ -6488,6 +6630,8 @@ snapshots:
 
   parseurl@1.3.3: {}
 
+  path-key@3.1.1: {}
+
   path-to-regexp@0.1.12: {}
 
   pathe@1.1.2: {}
@@ -6514,6 +6658,8 @@ snapshots:
       source-map-js: 1.2.1
 
   prettier@3.6.2: {}
+
+  promise-polyfill@8.3.0: {}
 
   prop-types@15.8.1:
     dependencies:
@@ -6707,6 +6853,12 @@ snapshots:
       - supports-color
 
   setprototypeof@1.2.0: {}
+
+  shebang-command@2.0.0:
+    dependencies:
+      shebang-regex: 3.0.0
+
+  shebang-regex@3.0.0: {}
 
   side-channel-list@1.0.0:
     dependencies:
@@ -6978,12 +7130,16 @@ snapshots:
       - supports-color
       - terser
 
+  which@2.0.2:
+    dependencies:
+      isexe: 2.0.0
+
   why-is-node-running@2.3.0:
     dependencies:
       siginfo: 2.0.0
       stackback: 0.0.2
 
-  wouter@3.7.1(patch_hash=4e16e6ff3fde7d6c1024d3e0c8605dc9eb6afb690d0d49958c2f449091813072)(react@19.2.0):
+  wouter@3.3.5(react@19.2.0):
     dependencies:
       mitt: 3.0.1
       react: 19.2.0

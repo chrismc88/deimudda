@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "wouter";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,15 +7,46 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Search, Filter } from "lucide-react";
+import { Header } from "@/components/Header";
 
 export default function BrowseListings() {
+  const [location] = useLocation();
+  
+  // Get initial search query from URL parameter
+  const initialSearchQuery = (() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("search") || "";
+  })();
+
   const [limit] = useState(50);
   const [offset, setOffset] = useState(0);
   const [filterType, setFilterType] = useState<"all" | "cutting" | "seed">("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [sortBy, setSortBy] = useState<"newest" | "price-low" | "price-high">("newest");
 
+  // Update search query when URL changes
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlSearch = params.get("search") || "";
+    setSearchQuery(urlSearch);
+  }, [location]);
+
   const listings = trpc.listing.getActive.useQuery({ limit, offset });
+
+  const parsePriceValue = (value: unknown) => {
+    if (typeof value === "number") return value;
+    if (typeof value === "string") {
+      const parsed = parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
+  };
+
+  const resolveListingPrice = (listing: any) => {
+    return listing.priceType === "fixed"
+      ? parsePriceValue(listing.fixedPrice)
+      : parsePriceValue(listing.offerMinPrice);
+  };
 
   // Filter and sort listings
   const filteredListings = listings.data
@@ -31,22 +62,24 @@ export default function BrowseListings() {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       }
       if (sortBy === "price-low") {
-        const priceA = a.priceType === ("fixed" as any) ? parseFloat(a.fixedPrice as any) : parseFloat(a.auctionStartPrice as any);
-        const priceB = b.priceType === ("fixed" as any) ? parseFloat(b.fixedPrice as any) : parseFloat(b.auctionStartPrice as any);
+        const priceA = resolveListingPrice(a);
+        const priceB = resolveListingPrice(b);
         return priceA - priceB;
       }
       if (sortBy === "price-high") {
-        const priceA = a.priceType === ("fixed" as any) ? parseFloat(a.fixedPrice as any) : parseFloat(a.auctionStartPrice as any);
-        const priceB = b.priceType === ("fixed" as any) ? parseFloat(b.fixedPrice as any) : parseFloat(b.auctionStartPrice as any);
+        const priceA = resolveListingPrice(a);
+        const priceB = resolveListingPrice(b);
         return priceB - priceA;
       }
       return 0;
     }) || [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
+    <>
+      <Header />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Stecklinge & Samen durchsuchen</h1>
           <p className="text-gray-600">
@@ -184,14 +217,14 @@ export default function BrowseListings() {
                     {/* Price */}
                     <div className="pt-2 border-t">
                       <p className="text-lg font-bold text-green-600">
-                        {listing.priceType === ("fixed" as any)
-                          ? `€${parseFloat(listing.fixedPrice as any).toFixed(2)}`
-                          : listing.auctionStartPrice
-                          ? `Ab €${parseFloat(listing.auctionStartPrice as any).toFixed(2)}`
-                          : "Auktion"}
+                        {listing.priceType === "fixed"
+                          ? `€${resolveListingPrice(listing).toFixed(2)}`
+                          : listing.offerMinPrice
+                          ? `Ab €${resolveListingPrice(listing).toFixed(2)}`
+                          : "Verhandlungsbasis"}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {listing.priceType === "fixed" ? "Festpreis" : "Auktion"}
+                        {listing.priceType === "fixed" ? "Festpreis" : "Verhandlungsbasis"}
                       </p>
                     </div>
 
@@ -228,8 +261,8 @@ export default function BrowseListings() {
             </Button>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
-

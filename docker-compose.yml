@@ -1,0 +1,31 @@
+services:
+  db:
+    image: mysql:8
+    container_name: deimudda-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: deimudda
+    ports:
+      - "3307:3306"   # Host:Container
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - db_data:/var/lib/mysql
+
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - ADMINER_DEFAULT_SERVER=db
+    ports:
+      - "8080:8080"
+
+volumes:
+  db_data:
