@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../_core/hooks/useAuth";
 import { trpc } from "../lib/trpc";
 import AdminNav from "./AdminNav";
+import BackButton from "@/components/BackButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
@@ -81,6 +82,7 @@ export default function AdminSessions() {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-4xl mx-auto">
+        <BackButton href="/admin" label="Zurück zum Dashboard" />
         <AdminNav />
 
         <div className="mb-8">

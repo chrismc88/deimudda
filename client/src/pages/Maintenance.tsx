@@ -43,7 +43,7 @@ export default function Maintenance() {
         
         {/* Admin login link */}
         <div className="mt-8 pt-6 border-t border-gray-200">
-          <Link href="/admin-login">
+          <Link href="/admin/test">
             <span className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-blue-600 transition-colors cursor-pointer">
               <Shield className="h-4 w-4" />
               Administrator-Zugang
@@ -60,4 +60,3 @@ export default function Maintenance() {
     </div>
   );
 }
-

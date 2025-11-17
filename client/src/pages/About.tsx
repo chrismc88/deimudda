@@ -303,7 +303,7 @@ export default function About() {
                   Stecklinge entdecken
                 </a>
                 <a 
-                  href="/register" 
+                  href="/profile" 
                   className="bg-green-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-800 transition border-2 border-white"
                 >
                   Jetzt registrieren
@@ -324,4 +324,3 @@ export default function About() {
     </div>
   );
 }
-

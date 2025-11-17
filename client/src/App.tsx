@@ -4,6 +4,7 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import CookieBanner from "./components/CookieBanner";
+import MaintenanceGate from "./components/MaintenanceGate";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Impressum from "./pages/Impressum";
@@ -82,6 +83,7 @@ function Router() {
       <Route path="/checkout-new/:id" component={CheckoutNew} />
       <Route path="/seller/transactions" component={SellerTransactions} />
       <Route path="/offers" component={OfferManagement} />
+      <Route path="/offers/:offerId" component={OfferManagement} />
       <Route path="/messages/new" component={NewMessage} />
       
       {/* Admin Routes - Protected routes for admin/super_admin */}
@@ -122,9 +124,11 @@ function App() {
         // switchable
       >
         <TooltipProvider>
-          <Toaster />
-          <Router />
-          <CookieBanner />
+          <MaintenanceGate>
+            <Toaster />
+            <Router />
+            <CookieBanner />
+          </MaintenanceGate>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

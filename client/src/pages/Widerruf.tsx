@@ -1,8 +1,11 @@
+import BackButton from "@/components/BackButton";
+
 export default function Widerruf() {
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-lg p-8">
+          <BackButton href="/" label="Zurück zur Startseite" />
           <h1 className="text-4xl font-bold mb-8 text-gray-900">Widerrufsbelehrung</h1>
           
           <div className="prose prose-lg max-w-none">

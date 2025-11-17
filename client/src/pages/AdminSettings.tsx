@@ -42,6 +42,7 @@ type SystemSettings = z.infer<typeof systemSettingsSchema>;
 export default function AdminSettings() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("general");
+  const utils = trpc.useUtils();
 
   // Get system settings query
   const { data: settings, isLoading, error, refetch } = trpc.admin.getSystemSettings.useQuery(undefined, {
@@ -52,6 +53,7 @@ export default function AdminSettings() {
   const updateSettingsMutation = trpc.admin.updateSystemSettings.useMutation({
     onSuccess: () => {
       refetch();
+      utils.system.getMaintenanceStatus.invalidate();
     },
   });
 

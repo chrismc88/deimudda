@@ -18,6 +18,7 @@ import { sdk } from "./sdk";
 import { ipBlockingMiddleware } from "./ipBlockingMiddleware";
 import { getClientIP } from "./getClientIP";
 import "../testAdmin"; // Create test admin user
+import { maintenanceMiddleware } from "./maintenanceMiddleware";
 
 const OWNER_OPEN_ID = process.env.OWNER_OPEN_ID ?? "admin-local";
 
@@ -81,6 +82,9 @@ async function startServer() {
 
   // IP Blocking: Check blocked IPs before processing requests
   app.use(ipBlockingMiddleware);
+
+  // Maintenance Mode: Early exit for non-admin traffic when enabled
+  app.use(maintenanceMiddleware);
 
   // Global Rate Limiting: 100 requests per 15 minutes per IP
   const globalLimiter = rateLimit({

@@ -1,3 +1,4 @@
+import BackButton from "@/components/BackButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Impressum() {
@@ -6,6 +7,7 @@ export default function Impressum() {
       <div className="max-w-4xl mx-auto">
         <Card>
           <CardHeader>
+            <BackButton href="/" label="Zurück zur Startseite" />
             <CardTitle className="text-3xl">Impressum</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">

@@ -218,7 +218,7 @@ export default function Checkout() {
                     />
                     <span className="text-sm">
                       Ich bestätige, dass ich mindestens 18 Jahre alt bin und die{" "}
-                      <Link href="/age-verification" className="text-blue-600 hover:underline">
+                      <Link href="/terms" className="text-blue-600 hover:underline">
                         Altersverifikation
                       </Link>{" "}
                       akzeptiere.
@@ -334,4 +334,3 @@ export default function Checkout() {
     </div>
   );
 }
-
