@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Plus, Edit2, Trash2 } from "lucide-react";
+import { AlertCircle, Plus, Edit2, Trash2, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 
@@ -44,6 +44,20 @@ export default function SellerDashboard() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingListing, setEditingListing] = useState<any>(null);
   const [createImageFieldError, setCreateImageFieldError] = useState<string | null>(null);
+  const { data: platformFeeStr } = trpc.admin.getSystemSetting.useQuery('platform_fee_fixed', { staleTime: 300000 });
+  const { data: maxImagesStr } = trpc.admin.getSystemSetting.useQuery('max_listing_images', { staleTime: 300000 });
+  const { data: imageSizeStr } = trpc.admin.getSystemSetting.useQuery('image_max_size_mb', { staleTime: 300000 });
+
+  const sellerInfo = useMemo(() => {
+    const platformFee = platformFeeStr ? parseFloat(platformFeeStr) : 0.42;
+    const maxImages = maxImagesStr ? parseInt(maxImagesStr, 10) : 10;
+    const imageSize = imageSizeStr ? parseInt(imageSizeStr, 10) : 5;
+    return {
+      platformFee: platformFee.toFixed(2),
+      maxImages: Number.isFinite(maxImages) ? maxImages : 10,
+      imageSize: Number.isFinite(imageSize) ? imageSize : 5,
+    };
+  }, [platformFeeStr, maxImagesStr, imageSizeStr]);
 
   // Queries
   const sellerProfile = trpc.seller.getProfile.useQuery(undefined, {
@@ -325,6 +339,32 @@ export default function SellerDashboard() {
             Verwalten Sie Ihre Stecklinge und Samen auf der deimudda-Plattform.
           </p>
         </div>
+
+        <Card className="mb-10 bg-emerald-50/40 border-emerald-100">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base text-emerald-900">
+              <Info className="h-4 w-4" />
+              Aktuelle Plattform-Regeln
+            </CardTitle>
+            <CardDescription>
+              Werte werden live aus den System Settings geladen und gelten für alle Verkäufer:innen.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-3 text-sm text-emerald-900">
+            <div>
+              <p className="text-emerald-700">Plattformgebühr pro Verkauf</p>
+              <p className="text-2xl font-bold">€{sellerInfo.platformFee}</p>
+            </div>
+            <div>
+              <p className="text-emerald-700">Max. Bilder pro Listing</p>
+              <p className="text-2xl font-bold">{sellerInfo.maxImages} Dateien</p>
+            </div>
+            <div>
+              <p className="text-emerald-700">Bildgröße (je Datei)</p>
+              <p className="text-2xl font-bold">{sellerInfo.imageSize} MB</p>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Profile Card */}
         {sellerProfile.data && (
