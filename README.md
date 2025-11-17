@@ -94,6 +94,18 @@ Alle Updates laufen über `server/db.ts#updateSystemSetting` (Insert/Upsert inkl
 
 ---
 
+## 🖥 Admin-Oberfläche (Überblick)
+
+- **Dashboard & Users** – KPIs, Nutzerverwaltung, Rollenwechsel, Moderationsaktionen.
+- **Listings & Reports** – Content-Moderation, Report-Review, Statuswechsel.
+- **Security** – IP-Blocking, Login-Audit, Suspicious-IP-Listen.
+- **Settings (Fees/Limits/Sessions/Globals)** – siehe Tabelle oben, direkter Zugriff auf `systemSettings`.
+- **Notifications / Logs** – Audit-Log, Admin-Logbook, Benachrichtigungs-Center.
+
+Screenshots & ausführliche Beschreibungen folgen sukzessive in `docs/` (gleiche Struktur wie oben), sodass jede Admin-Seite dokumentiert ist.
+
+---
+
 ## 📚 Dokumentation
 
 - `STATUS.md` – Aktueller Stand & Health-Check

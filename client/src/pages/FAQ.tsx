@@ -98,14 +98,19 @@ export default function FAQ() {
     question: "Wie registriere ich mich?",
     answer: (
       <div>
+        <p className="mb-3">
+          Aktuell läuft deimudda als geschlossene Beta. Accounts werden von unserem Team eingeladen und anschließend
+          über den internen Dev-Login aktiviert. So stellen wir sicher, dass nur verifizierte Tester Zugriff erhalten.
+        </p>
         <ol className="list-decimal pl-6 space-y-2">
-          <li>Klicke auf "Zum Dashboard" oder "Registrieren"</li>
-          <li>Melde dich über OAuth an (z.B. Google, GitHub)</li>
-          <li>Wähle einen Nickname</li>
-          <li>Fertig! Du kannst jetzt kaufen und verkaufen</li>
+          <li>Du erhältst eine Einladung per E‑Mail oder direkt vom Admin-Team</li>
+          <li>Nutze den bereitgestellten Login-Link (Dev-Login) und bestätige deinen Nickname</li>
+          <li>Fülle dein Profil aus (optional: Standort, Profilbild)</li>
+          <li>Fertig – du kannst Listings erstellen oder Angebote verschicken</li>
         </ol>
         <p className="mt-3 text-sm text-gray-600">
-          <strong>Hinweis:</strong> Wir verwenden OAuth für sichere Authentifizierung. Deine Zugangsdaten werden nicht bei uns gespeichert.
+          <strong>Ausblick:</strong> Für den öffentlichen Launch wird OAuth (z.&nbsp;B. Google/Apple) ergänzt. Bis dahin
+          verwenden wir ein tokenbasiertes Einladungsverfahren, es werden keine externen Zugangsdaten gespeichert.
         </p>
       </div>
     )
@@ -561,4 +566,3 @@ export default function FAQ() {
     </div>
   );
 }
-

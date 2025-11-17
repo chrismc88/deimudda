@@ -7,10 +7,10 @@ Chronologischer Fahrplan für den Abschluss der Plattform. Ergänzt `STATUS.md` 
 ## Phase 1 – Core Experience (KW 47)
 
 ### OfferManagement Rebuild
-- [ ] Neue React-Page inkl. Tabs (eingehend / ausgehend).
-- [ ] Hooks `useOffersReceived`, `useOffersSent` (Pagination, Filter).
-- [ ] Aktionen (accept / reject / counter) per tRPC anbinden.
-- [ ] Verlinkung aus Dashboard + Admin.
+- [x] Neue React-Page inkl. Tabs (eingehend / ausgehend). _Nutzung: `client/src/pages/OfferManagement.tsx`_
+- [x] Hooks `useOffersReceived`, `useOffersSent` (Pagination, Filter). _Abgebildet über `trpc.offer.getIncoming/getMine/getPending`_
+- [x] Aktionen (accept / reject / counter) per tRPC anbinden. _Mutations `offer.accept/reject/counter/respondToCounter`_
+- [x] Verlinkung aus Dashboard + Admin. _Route `/offers` aktiv, Navigation eingebunden_
 
 ### UX & Copy
 - [ ] Dynamische FAQ/Fee-Texte gegen Settings prüfen.

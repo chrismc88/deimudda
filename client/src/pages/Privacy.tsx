@@ -54,7 +54,7 @@ export default function Privacy() {
                 <strong>deimudda erhebt folgende Daten:</strong>
               </p>
               <ul className="list-disc pl-6 mb-4">
-                <li>Bei Registrierung: Open ID (eindeutige Nutzer-ID vom OAuth-Provider), optional Name und E-Mail</li>
+                <li>Bei Registrierung: interne Nutzer-ID (Dev-Login), optional Name und E-Mail</li>
                 <li>Bei Profil-Erstellung: Nickname, Standort (optional), Profilbild (optional)</li>
                 <li>Bei Verkäufer-Aktivierung: Shop-Name, Beschreibung, Standort</li>
                 <li>Bei Listing-Erstellung: Produktdaten (Strain, Beschreibung, Preis, Bilder)</li>
@@ -121,18 +121,16 @@ export default function Privacy() {
             <section className="mb-8">
               <h2 className="text-2xl font-bold mb-4">3. Datenerfassung auf deimudda</h2>
               
-              <h3 className="text-xl font-semibold mb-3">3.1 Registrierung und Authentifizierung (OAuth)</h3>
+              <h3 className="text-xl font-semibold mb-3">3.1 Registrierung und Authentifizierung (Beta-Einladung)</h3>
               <p className="mb-4">
-                Zur Nutzung von deimudda ist eine Registrierung erforderlich. Wir nutzen <strong>OAuth</strong> für die 
-                Authentifizierung. Bei der Anmeldung über OAuth werden Sie zu einem externen Authentifizierungsdienst 
-                weitergeleitet.
+                Zur Nutzung von deimudda ist eine Registrierung erforderlich. In der aktuellen Beta-Phase vergeben wir Accounts manuell �ber Einladungen. Die Anmeldung erfolgt �ber unseren internen Dev-Login, der einen signierten Session-Token erstellt.
               </p>
               <p className="mb-4">
                 <strong>Erhobene Daten:</strong>
               </p>
               <ul className="list-disc pl-6 mb-4">
-                <li>Open ID (eindeutige Nutzer-ID)</li>
-                <li>Optional: Name, E-Mail-Adresse (falls vom OAuth-Provider bereitgestellt und von Ihnen freigegeben)</li>
+                <li>Interne Nutzer-ID (Dev-Login)</li>
+                <li>Optional: Name, E-Mail-Adresse (falls Sie diese freiwillig angeben)</li>
               </ul>
               <p className="mb-4">
                 <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung) und Art. 6 Abs. 1 lit. a DSGVO (Einwilligung)
@@ -416,7 +414,7 @@ export default function Privacy() {
               </p>
               <ul className="list-disc pl-6 mb-4">
                 <li>SSL/TLS-Verschlüsselung für alle Datenübertragungen</li>
-                <li>Sichere Passwort-Speicherung (OAuth)</li>
+                <li>Signierte Session-Tokens (Dev-Login) und Zugriffsbeschr�nkungen</li>
                 <li>Regelmäßige Sicherheits-Updates</li>
                 <li>Zugriffsbeschränkungen auf Datenbanken</li>
                 <li>Regelmäßige Backups</li>
@@ -451,4 +449,3 @@ export default function Privacy() {
     </div>
   );
 }
-
