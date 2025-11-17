@@ -102,7 +102,7 @@ Alle Updates laufen über `server/db.ts#updateSystemSetting` (Insert/Upsert inkl
 - **Settings (Fees/Limits/Sessions/Globals)** – siehe Tabelle oben, direkter Zugriff auf `systemSettings`.
 - **Notifications / Logs** – Audit-Log, Admin-Logbook, Benachrichtigungs-Center.
 
-Screenshots & ausführliche Beschreibungen folgen sukzessive in `docs/` (gleiche Struktur wie oben), sodass jede Admin-Seite dokumentiert ist.
+Eine ausführliche Beschreibung jeder Seite findest du in `docs/ADMIN_MODULES.md`. Dort sind auch Hinweise hinterlegt, wie Screenshots für die Dokumentation erstellt werden sollten.
 
 ---
 
